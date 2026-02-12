@@ -1,4 +1,4 @@
-# Villain Simulator (反派模拟器)
+#  Simulator Editor(模拟器编辑器)
 
 这是一个基于 Web 的文字模拟游戏引擎。
 This is a web-based text simulation game engine.
@@ -9,7 +9,7 @@ This is a web-based text simulation game engine.
 
 ## 功能特性 (Features)
 - 📝 **内置编辑器**: 可视化编辑世界、天赋、事件和结局。
-- 🌍 **多世界支持**: 支持修仙、都市等多种题材模板。
+- 🌍 **多世界支持**: 支持修仙、都市等多种题材模板，同时可以自建世界观并设置特色属性词条。
 - 🤖 **AI 辅助创作**: 提供提示词，一键生成完整剧本。
 - 💾 **独立发布**: 一键导出单文件 HTML，方便分享。
 
