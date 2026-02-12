@@ -1,0 +1,2530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Villain Simulator Config Editor v2.0</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #2d2d2d;
+            --text-color: #e0e0e0;
+            --accent-color: #3498db;
+            --secondary-color: #2ecc71;
+            --border-color: #444;
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar --- */
+        #sidebar {
+            width: 250px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            padding: 10px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 1em;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .nav-btn:hover {
+            background: #3a3a3a;
+            color: #fff;
+        }
+
+        .nav-btn.active {
+            background: var(--accent-color);
+            color: #fff;
+        }
+
+        .nav-header {
+            font-weight: bold;
+            color: #666;
+            font-size: 0.8em;
+            margin: 15px 0 5px 0;
+            text-transform: uppercase;
+        }
+
+        /* --- Main Area --- */
+        #main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* --- Forms --- */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 8px;
+            background: #333;
+            border: 1px solid #555;
+            color: #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: var(--accent-color);
+            outline: none;
+        }
+
+        .list-item {
+            background: #333;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .list-item:hover {
+            background: #444;
+        }
+
+        .list-item.selected {
+            border-left: 3px solid var(--accent-color);
+            background: #383838;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* --- JSON View --- */
+        #json-area {
+            height: 150px;
+            background: #111;
+            color: #2ecc71;
+            font-family: monospace;
+            padding: 10px;
+            overflow: auto;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* --- Timeline View Specifics --- */
+        .timeline-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #222;
+        }
+
+        .timeline-header {
+            padding: 10px;
+            background: #333;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .timeline-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .node-item {
+            padding: 8px;
+            background: #2a2a2a;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .node-item:hover {
+            background: #3a3a3a;
+        }
+
+        .node-item.selected {
+            border-color: var(--accent-color);
+            background: #383838;
+        }
+
+        .node-key {
+            border-left-color: var(--accent-color);
+        }
+
+        /* Blue for key nodes */
+        .node-pool {
+            border-left-color: var(--secondary-color);
+        }
+
+        /* Green for pools */
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <h2 style="margin:0 0 20px 0; color:var(--accent-color);">配置编辑器 (Config Editor)</h2>
+
+        <button id="btn-worlds" class="nav-btn active" onclick="app.nav('worlds')">世界</button>
+        <button id="btn-talents" class="nav-btn" onclick="app.nav('talents')">天赋</button>
+        <button id="btn-events" class="nav-btn" onclick="app.nav('events')">事件</button>
+        <button id="btn-endings" class="nav-btn" onclick="app.nav('endings')">结算</button>
+        <button id="btn-timeline" class="nav-btn" onclick="app.nav('timeline')">时间轴</button>
+
+        <div class="nav-header">工具</div>
+        <button id="btn-appearance" class="nav-btn" onclick="app.nav('appearance')">🎨 外观设置</button>
+        <button id="btn-export" class="nav-btn" onclick="app.nav('export')">导入 / 导出</button>
+    </div>
+
+    <div style="display:flex; flex-direction:column; flex-grow:1;">
+        <div id="main">
+            <!-- Content injected here -->
+        </div>
+        <div id="json-area">
+            <!-- Live JSON preview -->
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            data: {
+                // Initial real data from Engine v1.0
+                initialPoints: 20,
+
+                // Theme / Appearance
+                theme: {
+                    title: '反派模拟器',
+                    subtitle: 'Core Engine v1.0',
+                    bgColor: '#121212',
+                    textColor: '#e0e0e0',
+                    accentColor: '#bb86fc',
+                    secondaryColor: '#03dac6',
+                    panelBg: '#1e1e1e',
+                    borderColor: '#333'
+                },
+
+                worlds: [
+                    {
+                        id: "w_fantasy",
+                        name: "测试世界：修仙",
+                        desc: "这是一个用于测试属性映射的修仙世界模版。",
+                        uniqueAttributes: ["修为", "根骨", "魔念", "寿元"]
+                    },
+                    {
+                        id: "w_city",
+                        name: "测试世界：都市",
+                        desc: "这是一个用于测试的现代都市模版。",
+                        uniqueAttributes: ["智商", "体魄", "金钱", "人脉"]
+                    }
+                ],
+                endings: [],
+
+                talents: [
+                    { id: "t_f_1", worldId: "w_fantasy", name: "天生魔种", desc: "魔念+5", effect: { "魔念": 5 } },
+                    { id: "t_f_2", worldId: "w_fantasy", name: "长生诀", desc: "寿元+50", effect: { "寿元": 50 } },
+                    { id: "t_f_3", worldId: "w_fantasy", name: "废柴", desc: "根骨-2", effect: { "根骨": -2 } },
+                    { id: "t_f_4", worldId: "w_fantasy", name: "阵法师", desc: "智力转化修为", effect: { "修为": 2 } },
+                    { id: "t_c_1", worldId: "w_city", name: "富二代", desc: "金钱+10", effect: { "金钱": 10 } },
+                    { id: "t_c_2", worldId: "w_city", name: "黑客", desc: "智商+5", effect: { "智商": 5 } }
+                ],
+
+                events: [
+                    {
+                        id: "e_born",
+                        worldId: "w_fantasy", minAge: 0, maxAge: 0,
+                        text: "你出生了。周围魔气缭绕。",
+                        effect: { "魔念": 1 }
+                    },
+                    {
+                        id: "e_cultivate",
+                        worldId: "w_fantasy", minAge: 5, maxAge: 100,
+                        text: "你闭关修炼，修为精进。",
+                        effect: { "修为": 1 }
+                    },
+                    {
+                        id: "e_choice_test",
+                        worldId: "w_fantasy", minAge: 10, maxAge: 20,
+                        text: "【测试】你发现了一本魔道秘籍。",
+                        choices: [
+                            { text: "修炼 (魔念+5)", effect: { "魔念": 5 } },
+                            { text: "销毁 (无事发生)", effect: {} }
+                        ],
+                        once: true
+                    },
+                    {
+                        id: "e_city_born",
+                        worldId: "w_city", minAge: 0, maxAge: 0,
+                        text: "你出生在中心医院。父亲看着账单皱眉。",
+                        effect: { "金钱": -1 }
+                    },
+                    {
+                        id: "e_city_work",
+                        worldId: "w_city", minAge: 18, maxAge: 60,
+                        text: "又是996的一年。",
+                        effect: { "金钱": 1, "体魄": -1 }
+                    }
+                ]
+            },
+            currentView: 'worlds',
+            tempEndingRules: {},
+            selectedId: null,
+            selectedId: null,
+
+            // Timeline State
+            tlWorldId: null,
+            tlFilter: null, // { minAge, maxAge, type }
+
+            init() {
+                if (this.data.worlds.length === 0) {
+                    this.data.worlds.push({ id: 'w_demo', name: '示例世界', desc: '这是一个示例世界', uniqueAttributes: ['属怱1'] });
+                }
+                this.render();
+            },
+
+            nav(view) {
+                this.currentView = view;
+                this.selectedId = null;
+
+                // Update Nav UI
+                document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+                const btnId = `btn-${view}`;
+                const btn = document.getElementById(btnId);
+                if (btn) btn.classList.add('active');
+
+                this.render();
+            },
+
+            render() {
+                const main = document.getElementById('main');
+                main.innerHTML = '';
+
+                // Update JSON View
+                document.getElementById('json-area').innerText = JSON.stringify(this.data, null, 2);
+
+                if (this.currentView === 'export') {
+                    this.renderExport(main);
+                } else if (this.currentView === 'timeline') {
+                    this.renderTimeline(main);
+                } else if (this.currentView === 'appearance') {
+                    this.renderAppearance(main);
+                } else {
+                    // Standard Views
+                    let list = this.getList(this.currentView);
+                    let renderer = this.getRenderer(this.currentView);
+
+                    if (this.currentView === 'events') {
+                        this.renderEventList(main, list, renderer);
+                    } else if (this.currentView === 'talents') {
+                        this.renderTalentList(main, list, renderer);
+                    } else if (this.currentView === 'endings') {
+                        this.renderEndingList(main, list, renderer);
+                    } else {
+                        this.renderList(main, list, renderer);
+                    }
+                }
+            },
+
+            getRenderer(view) {
+                if (view === 'worlds') return this.renderWorldForm;
+                if (view === 'talents') return this.renderTalentForm;
+                if (view === 'talents') return this.renderTalentForm;
+                if (view === 'events') return this.renderEventForm;
+                if (view === 'endings') return this.renderEndingForm;
+                return null;
+            },
+
+            // --- Timeline Renderer ---
+            renderTimeline(container) {
+                // 1. World Selector
+                const header = document.createElement('div');
+                header.style.marginBottom = '15px';
+                header.innerHTML = `
+            <label>选择世界以编辑时间轴 (Select World):</label>
+            <select id="tl-world-select" onchange="app.setTlWorld(this.value)">
+                <option value="">-- 请选择世界 --</option>
+                ${this.data.worlds.map(w => `<option value="${w.id}" ${w.id === this.tlWorldId ? 'selected' : ''}>${w.name}</option>`).join('')}
+            </select>
+        `;
+                container.appendChild(header);
+
+                if (!this.tlWorldId) return;
+
+                // 2. Timeline Layout (3 Columns: Node List | Event Pool | Event Editor)
+                const layout = document.createElement('div');
+                layout.style.display = 'flex';
+                layout.style.gap = '15px';
+                layout.style.height = '100%';
+                layout.style.overflow = 'hidden';
+
+                // Col 1: Nodes (Age Filters) & Custom Node Creator
+                const colNodes = document.createElement('div');
+                colNodes.className = 'timeline-col';
+                colNodes.innerHTML = `<div class="timeline-header">Timeline Controls</div>`;
+
+                // Custom Node Creator Form
+                const controlPanel = document.createElement('div');
+                controlPanel.style.padding = '10px';
+                controlPanel.style.background = '#2a2a2a';
+                controlPanel.style.borderBottom = '1px solid #444';
+
+                // Get world attributes
+                const world = this.data.worlds.find(w => w.id === this.tlWorldId);
+                const attrs = world ? world.uniqueAttributes : [];
+
+                controlPanel.innerHTML = `
+                    <div style="font-size:0.9em; font-weight:bold; margin-bottom:5px; color:var(--accent-color);">快速创建节点 (Quick Node)</div>
+                    <div style="display:flex; gap:5px; margin-bottom:5px;">
+                        <input type="number" id="quick-age" placeholder="年龄" style="width:50px;" value="0">
+                        <select id="quick-attr" style="flex:1;">
+                            <option value="">- 效果 -</option>
+                            ${attrs.map(a => `<option value="${a}">${a}</option>`).join('')}
+                            <option value="寿元">寿元</option>
+                            <option value="金钱">金钱</option>
+                        </select>
+                        <input type="number" id="quick-val" placeholder="数值" style="width:50px;">
+                    </div>
+                    <textarea id="quick-text" rows="2" placeholder="事件描述..." style="width:100%; margin-bottom:5px;"></textarea>
+                    <button class="btn btn-primary" style="width:100%;" onclick="app.addCustomNode()">+ 创建节点事件</button>
+                    <hr style="border-color:#444; margin:10px 0;">
+                    <div style="font-size:0.9em; font-weight:bold; margin-bottom:5px; color:var(--secondary-color);">过滤器 (Filters)</div>
+                    <button class="btn" style="width:100%; background:#444; color:#ccc;" onclick="app.addPool()">+ 过滤范围 (Pool)</button>
+                `;
+                colNodes.appendChild(controlPanel);
+
+                const nodeList = document.createElement('div');
+                nodeList.className = 'timeline-list';
+                // ... (Node list rendering logic) ...
+
+
+                // Render Existing Nodes/Pools based on actual events
+                // Logic: Group existing events by min/max age
+                const groups = {};
+                this.data.events.filter(e => e.worldId === this.tlWorldId).forEach(e => {
+                    const key = `${e.minAge}-${e.maxAge}`;
+                    if (!groups[key]) groups[key] = { min: e.minAge, max: e.maxAge, events: [] };
+                    groups[key].events.push(e);
+                });
+
+                // Sort groups
+                const sortedKeys = Object.keys(groups).sort((a, b) => groups[a].min - groups[b].min);
+
+                // Render Group Items
+                sortedKeys.forEach(key => {
+                    const g = groups[key];
+                    const isKeyNode = g.min === g.max;
+                    const div = document.createElement('div');
+                    div.className = `node-item ${isKeyNode ? 'node-key' : 'node-pool'} ${this.tlFilter && this.tlFilter.key === key ? 'selected' : ''}`;
+                    div.innerHTML = `
+                <div style="font-weight:bold;">${isKeyNode ? `${g.min} 岁` : `${g.min}-${g.max} 岁`}</div>
+                <div style="font-size:0.8em; color:#888;">${g.events.length} 个事件</div>
+            `;
+                    div.onclick = () => {
+                        this.tlFilter = { min: g.min, max: g.max, key: key };
+                        this.selectedId = null; // Clear event selection
+                        this.render();
+                    };
+                    nodeList.appendChild(div);
+                });
+                colNodes.appendChild(nodeList);
+
+                // Col 2: Event List (Filtered by selected Node)
+                const colEvents = document.createElement('div');
+                colEvents.className = 'timeline-col';
+                colEvents.innerHTML = `<div class="timeline-header">已选事件列表 (Events)</div>`;
+                const eventList = document.createElement('div');
+                eventList.className = 'timeline-list';
+
+                if (this.tlFilter) {
+                    // Filter events
+                    const filtered = this.data.events.filter(e =>
+                        e.worldId === this.tlWorldId &&
+                        e.minAge === this.tlFilter.min &&
+                        e.maxAge === this.tlFilter.max
+                    );
+
+                    // Add Event Button
+                    const addEvtBtn = document.createElement('button');
+                    addEvtBtn.className = 'btn btn-success';
+                    addEvtBtn.style.width = '100%';
+                    addEvtBtn.style.marginBottom = '10px';
+                    addEvtBtn.innerText = '+ 在此添加事件';
+                    addEvtBtn.onclick = () => {
+                        const newEvt = {
+                            id: Date.now().toString(),
+                            worldId: this.tlWorldId,
+                            minAge: this.tlFilter.min,
+                            maxAge: this.tlFilter.max,
+                            text: '新事件'
+                        };
+                        this.data.events.push(newEvt);
+                        this.selectedId = newEvt.id;
+                        this.render();
+                    };
+                    eventList.appendChild(addEvtBtn);
+
+                    filtered.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = `list-item ${item.id === this.selectedId ? 'selected' : ''}`;
+                        let title = item.text ? item.text.substring(0, 20) + '...' : '未命名';
+                        div.innerHTML = `<span>${title}</span>`;
+                        div.onclick = () => {
+                            this.selectedId = item.id;
+                            this.render();
+                        };
+                        // Delete btn
+                        const delBtn = document.createElement('button');
+                        delBtn.innerText = 'x';
+                        delBtn.className = 'btn btn-danger';
+                        delBtn.style.padding = '2px 6px';
+                        delBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            if (confirm('确认删除?')) {
+                                const idx = this.data.events.findIndex(x => x.id === item.id);
+                                this.data.events.splice(idx, 1);
+                                this.selectedId = null;
+                                this.render();
+                            }
+                        };
+                        div.appendChild(delBtn);
+                        eventList.appendChild(div);
+                    });
+                } else {
+                    eventList.innerHTML = '<div style="padding:10px; color:#666; text-align:center;">请在左侧选择节点/池</div>';
+                }
+                colEvents.appendChild(eventList);
+
+                // Col 3: Event Editor
+                const colEditor = document.createElement('div');
+                colEditor.className = 'timeline-col';
+                colEditor.style.flex = 1.5; // Wider
+                colEditor.innerHTML = `<div class="timeline-header">事件编辑器 (Event Editor)</div>`;
+                const editorBody = document.createElement('div');
+                editorBody.style.padding = '10px';
+                editorBody.style.overflowY = 'auto';
+
+                if (this.selectedId) {
+                    const item = this.data.events.find(x => x.id === this.selectedId);
+                    if (item) this.renderEventForm(editorBody, item);
+                } else {
+                    editorBody.innerHTML = '<div style="color:#666; text-align:center; margin-top:50px;">请选择一个事件进行编辑</div>';
+                }
+                colEditor.appendChild(editorBody);
+
+                layout.appendChild(colNodes);
+                layout.appendChild(colEvents);
+                layout.appendChild(colEditor);
+                container.appendChild(layout);
+            },
+
+            setTlWorld(id) {
+                this.tlWorldId = id;
+                this.tlFilter = null;
+                this.selectedId = null;
+                this.render();
+            },
+
+            addKeyNode() {
+                const age = prompt("Enter Age for Key Node:");
+                if (age !== null) {
+                    const intAge = parseInt(age);
+                    this.tlFilter = { min: intAge, max: intAge, key: `${intAge}-${intAge}` };
+                    this.render();
+                }
+            },
+
+            addPool() {
+                const range = prompt("Enter Age Range (e.g., 0-10):");
+                if (range) {
+                    const parts = range.split('-');
+                    if (parts.length === 2) {
+                        const min = parseInt(parts[0]);
+                        const max = parseInt(parts[1]);
+                        this.tlFilter = { min, max, key: `${min}-${max}` };
+                        this.render();
+                    }
+                }
+            },
+
+            addCustomNode() {
+                const age = parseInt(document.getElementById('quick-age').value) || 0;
+                const attr = document.getElementById('quick-attr').value;
+                const val = parseInt(document.getElementById('quick-val').value) || 0;
+                const text = document.getElementById('quick-text').value;
+
+                if (!this.tlWorldId) {
+                    alert('请先选择一个世界!');
+                    return;
+                }
+
+                const newEvt = {
+                    id: Date.now().toString(),
+                    worldId: this.tlWorldId,
+                    minAge: age,
+                    maxAge: age,
+                    text: text || '新节点事件',
+                    effect: {}
+                };
+
+                if (attr && val !== 0) {
+                    newEvt.effect[attr] = val;
+                }
+
+                this.data.events.push(newEvt);
+
+                // Auto-select filter to show it
+                this.tlFilter = { min: age, max: age, key: `${age}-${age}` };
+                this.selectedId = newEvt.id;
+                this.render();
+            },
+
+
+            // --- Generic Renderers (Reused) ---
+
+            // Grouped Talent List Renderer
+            renderTalentList(container, list, formRenderer) {
+                const wrapper = document.createElement('div');
+                wrapper.style.display = 'flex';
+                wrapper.style.height = '100%';
+                wrapper.style.gap = '20px';
+
+                const listCol = document.createElement('div');
+                listCol.style.width = '300px';
+                listCol.style.overflowY = 'auto';
+                listCol.style.paddingRight = '10px';
+
+                // Group by World
+                const groups = {};
+                this.data.worlds.forEach(w => groups[w.id] = { name: w.name, talents: [] });
+                groups['__unassigned'] = { name: '未分配', talents: [] };
+
+                list.forEach(t => {
+                    if (groups[t.worldId]) {
+                        groups[t.worldId].talents.push(t);
+                    } else {
+                        groups['__unassigned'].talents.push(t);
+                    }
+                });
+
+                // Render Groups
+                Object.keys(groups).forEach(worldId => {
+                    const group = groups[worldId];
+                    if (group.talents.length === 0 && worldId === '__unassigned') return;
+
+                    const details = document.createElement('details');
+                    details.open = true;
+                    details.style.marginBottom = '10px';
+                    details.style.border = '1px solid #444';
+                    details.style.borderRadius = '4px';
+                    details.style.background = '#222';
+
+                    const summary = document.createElement('summary');
+                    summary.style.padding = '8px';
+                    summary.style.cursor = 'pointer';
+                    summary.style.fontWeight = 'bold';
+                    summary.style.background = '#333';
+                    summary.style.display = 'flex';
+                    summary.style.justifyContent = 'space-between';
+                    summary.style.alignItems = 'center';
+                    summary.innerHTML = `<span>${group.name} (${group.talents.length})</span>`;
+
+                    const addGrpBtn = document.createElement('button');
+                    addGrpBtn.className = 'btn btn-success';
+                    addGrpBtn.innerText = '+';
+                    addGrpBtn.title = '添加天赋';
+                    addGrpBtn.style.padding = '2px 8px';
+                    addGrpBtn.style.fontSize = '0.8em';
+                    addGrpBtn.style.lineHeight = '1';
+                    addGrpBtn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const newItem = {
+                            id: Date.now().toString(),
+                            name: '新天赋',
+                            desc: '',
+                            worldId: worldId === '__unassigned' ? '' : worldId,
+                            effect: {}
+                        };
+                        this.data.talents.push(newItem);
+                        this.selectedId = newItem.id;
+                        this.render();
+                    };
+                    summary.appendChild(addGrpBtn);
+                    details.appendChild(summary);
+
+                    const content = document.createElement('div');
+                    content.style.padding = '5px';
+
+                    group.talents.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = `list-item ${item.id === this.selectedId ? 'selected' : ''}`;
+                        div.style.fontSize = '0.9em';
+                        div.style.marginBottom = '2px';
+
+                        const effStr = Object.entries(item.effect || {}).map(([k, v]) => `${k}:${v > 0 ? '+' : ''}${v}`).join(' ');
+                        const qColor = this.getQualityColor(item.grade);
+                        div.innerHTML = `<span style="color:${qColor}; margin-right:5px; font-weight:${item.grade > 0 ? 'bold' : 'normal'}">${item.name}</span><small style="color:#888;">${effStr}</small>`;
+                        div.onclick = (e) => {
+                            e.stopPropagation();
+                            this.selectedId = item.id;
+                            this.render();
+                        };
+
+                        const delBtn = document.createElement('button');
+                        delBtn.innerText = 'x';
+                        delBtn.className = 'btn btn-danger';
+                        delBtn.style.padding = '0px 5px';
+                        delBtn.style.marginLeft = 'auto';
+                        delBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            if (confirm('确认删除该天赋?')) {
+                                const idx = this.data.talents.findIndex(x => x.id === item.id);
+                                if (idx > -1) {
+                                    this.data.talents.splice(idx, 1);
+                                    if (this.selectedId === item.id) this.selectedId = null;
+                                    this.render();
+                                }
+                            }
+                        };
+                        div.appendChild(delBtn);
+                        content.appendChild(div);
+                    });
+
+                    details.appendChild(content);
+                    listCol.appendChild(details);
+                });
+
+                const formCol = document.createElement('div');
+                formCol.style.flexGrow = 1;
+                formCol.style.overflowY = 'auto';
+                formCol.style.paddingLeft = '10px';
+
+                if (this.selectedId) {
+                    const item = list.find(x => x.id === this.selectedId);
+                    if (item) formRenderer.call(this, formCol, item);
+                } else {
+                    formCol.innerHTML = '<div style="color:#666; text-align:center; margin-top:50px;">请选择一个天赋进行编辑</div>';
+                }
+
+                wrapper.appendChild(listCol);
+                wrapper.appendChild(formCol);
+                container.appendChild(wrapper);
+            },
+
+            // Grouped Event List Renderer
+            // Grouped Event List Renderer
+            renderEventList(container, list, formRenderer) {
+                const wrapper = document.createElement('div');
+                wrapper.style.display = 'flex';
+                wrapper.style.height = '100%';
+                wrapper.style.gap = '20px';
+
+                const listCol = document.createElement('div');
+                listCol.style.width = '300px';
+                listCol.style.overflowY = 'auto';
+                listCol.style.paddingRight = '10px';
+
+                // Group by World
+                const groups = {};
+                this.data.worlds.forEach(w => groups[w.id] = { name: w.name, events: [] });
+                groups['__unassigned'] = { name: '未分配 (Unassigned)', events: [] };
+
+                list.forEach(e => {
+                    if (groups[e.worldId]) {
+                        groups[e.worldId].events.push(e);
+                    } else {
+                        groups['__unassigned'].events.push(e);
+                    }
+                });
+
+                // Render Groups
+                Object.keys(groups).forEach(worldId => {
+                    const group = groups[worldId];
+                    if (group.events.length === 0 && worldId === '__unassigned') return;
+
+                    // Sort events by Age (Min then Max)
+                    group.events.sort((a, b) => (a.minAge - b.minAge) || (a.maxAge - b.maxAge));
+
+                    const details = document.createElement('details');
+                    details.open = true; // Default open
+                    details.style.marginBottom = '10px';
+                    details.style.border = '1px solid #444';
+                    details.style.borderRadius = '4px';
+                    details.style.background = '#222';
+
+                    const summary = document.createElement('summary');
+                    summary.style.padding = '8px';
+                    summary.style.cursor = 'pointer';
+                    summary.style.fontWeight = 'bold';
+                    summary.style.background = '#333';
+                    summary.style.display = 'flex';
+                    summary.style.justifyContent = 'space-between';
+                    summary.style.alignItems = 'center';
+
+                    // Summary Content with Add Button
+                    summary.innerHTML = `<span>${group.name} (${group.events.length})</span>`;
+
+                    // Add Button in Header (Stop propagation to prevent toggle)
+                    const addGrpBtn = document.createElement('button');
+                    addGrpBtn.className = 'btn btn-success';
+                    addGrpBtn.innerText = '+';
+                    addGrpBtn.title = '添加事件 (Add Event)';
+                    addGrpBtn.style.padding = '2px 8px';
+                    addGrpBtn.style.fontSize = '0.8em';
+                    addGrpBtn.style.lineHeight = '1';
+                    addGrpBtn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const newItem = {
+                            id: this._generateShortId(),
+                            text: '新事件 (New Event)',
+                            worldId: worldId === '__unassigned' ? '' : worldId,
+                            minAge: 0,
+                            maxAge: 100
+                        };
+                        this.data.events.push(newItem);
+                        this.selectedId = newItem.id;
+                        this.render();
+                    };
+                    summary.appendChild(addGrpBtn);
+
+                    details.appendChild(summary);
+
+                    const content = document.createElement('div');
+                    content.style.padding = '5px';
+
+                    group.events.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = `list-item ${item.id === this.selectedId ? 'selected' : ''}`;
+                        div.style.fontSize = '0.9em';
+                        div.style.marginBottom = '2px';
+
+                        let title = item.text ? item.text.substring(0, 20) + '...' : 'Untitled';
+                        const ageStr = (item.minAge === item.maxAge) ? `[${item.minAge}]` : `[${item.minAge}-${item.maxAge}]`;
+
+                        div.innerHTML = `<span style="color:#aaa; margin-right:5px;">${ageStr}</span>${title}`;
+                        div.onclick = (e) => {
+                            e.stopPropagation(); // prevent closing details
+                            this.selectedId = item.id;
+                            this.render();
+                        };
+
+                        const delBtn = document.createElement('button');
+                        delBtn.innerText = 'x';
+                        delBtn.className = 'btn btn-danger';
+                        delBtn.style.padding = '0px 5px';
+                        delBtn.style.marginLeft = 'auto';
+                        delBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            if (confirm('确认删除? (Delete?)')) {
+                                const idx = this.data.events.findIndex(x => x.id === item.id);
+                                if (idx > -1) {
+                                    this.data.events.splice(idx, 1);
+                                    if (this.selectedId === item.id) this.selectedId = null;
+                                    this.render();
+                                }
+                            }
+                        };
+                        div.appendChild(delBtn);
+                        content.appendChild(div);
+                    });
+
+                    details.appendChild(content);
+                    listCol.appendChild(details);
+                });
+
+                const formCol = document.createElement('div');
+                formCol.style.flexGrow = 1;
+                formCol.style.overflowY = 'auto';
+                formCol.style.paddingLeft = '10px';
+
+                if (this.selectedId) {
+                    const item = list.find(x => x.id === this.selectedId);
+                    if (item) formRenderer.call(this, formCol, item);
+                } else {
+                    formCol.innerHTML = '<div style="color:#666; text-align:center; margin-top:50px;">请选择一个事件进行编辑</div>';
+                }
+
+                wrapper.appendChild(listCol);
+                wrapper.appendChild(formCol);
+                container.appendChild(wrapper);
+            },
+
+            renderList(container, list, formRenderer) {
+                const wrapper = document.createElement('div');
+                wrapper.style.display = 'flex';
+                wrapper.style.height = '100%';
+                wrapper.style.gap = '20px';
+
+                const listCol = document.createElement('div');
+                listCol.style.width = '300px';
+                listCol.style.overflowY = 'auto';
+
+                const addBtn = document.createElement('button');
+                addBtn.className = 'btn btn-success';
+                addBtn.innerText = '+ 新建 (Add New)';
+                addBtn.style.width = '100%';
+                addBtn.style.marginBottom = '10px';
+                addBtn.onclick = () => {
+                    const newItem = { id: Date.now().toString(), name: '新项目 (New Item)' };
+                    if (this.currentView === 'events') newItem.text = '新事件 (New Event)';
+                    if (this.currentView === 'worlds') newItem.uniqueAttributes = []; // Fix: Initialize attributes
+                    list.push(newItem);
+                    this.selectedId = newItem.id;
+                    this.render();
+                };
+                listCol.appendChild(addBtn);
+
+                list.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = `list-item ${item.id === this.selectedId ? 'selected' : ''}`;
+
+                    let title = item.name || '';
+                    if (!title && item.text) {
+                        title = item.text.substring(0, 20) + '...';
+                    }
+                    if (!title) title = 'Untitled';
+
+                    // Special display for Events: Show Age Range
+                    if (this.currentView === 'events') {
+                        const ageStr = (item.minAge === item.maxAge) ? `[Age ${item.minAge}]` : `[Age ${item.minAge}-${item.maxAge}]`;
+                        // Also show World ID briefly if needed, but sorting handles grouping. 
+                        // Let's just prepend Age.
+                        title = `<span style="color:#aaa; font-size:0.8em; margin-right:5px;">${ageStr}</span> ${title}`;
+                    }
+
+                    div.innerHTML = `<span>${title}</span>`;
+                    div.onclick = () => { this.selectedId = item.id; this.render(); };
+
+                    const delBtn = document.createElement('button');
+                    delBtn.innerText = 'x';
+                    delBtn.className = 'btn btn-danger';
+                    delBtn.style.padding = '2px 6px';
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (confirm('确认删除?')) {
+                            const idx = list.findIndex(x => x.id === item.id);
+                            list.splice(idx, 1);
+                            if (this.selectedId === item.id) this.selectedId = null;
+                            this.render();
+                        }
+                    };
+                    div.appendChild(delBtn);
+                    listCol.appendChild(div);
+                });
+
+                const formCol = document.createElement('div');
+                formCol.style.flexGrow = 1;
+                formCol.style.overflowY = 'auto';
+
+                if (this.selectedId) {
+                    const item = list.find(x => x.id === this.selectedId);
+                    if (item) formRenderer.call(this, formCol, item);
+                } else {
+                    formCol.innerHTML = '<div style="color:#666; text-align:center; margin-top:50px;">请选择编辑项 (Select an item to edit)</div>';
+                }
+
+                wrapper.appendChild(listCol);
+                wrapper.appendChild(formCol);
+                container.appendChild(wrapper);
+            },
+
+            updateTempRule(worldId, key, val) {
+                if (!this.tempEndingRules[worldId]) {
+                    this.tempEndingRules[worldId] = { left: 'age', op: '>=', right: '', endingId: '' };
+                }
+                this.tempEndingRules[worldId][key] = val;
+            },
+
+            renderWorldForm(container, item) {
+                container.innerHTML = `
+            <h3>编辑世界 (Edit World)</h3>
+            <div class="form-group"><label>ID</label><input type="text" value="${item.id}" onchange="app.updateItem('id', this.value)"></div>
+            <div class="form-group"><label>名称 (Name)</label><input type="text" value="${item.name}" oninput="app.updateItemSilent('name', this.value)"></div>
+            <div class="form-group"><label>描述 (Desc)</label><textarea rows="3" oninput="app.updateItemSilent('desc', this.value)">${item.desc || ''}</textarea></div>
+            
+            <div class="form-group">
+                <label>世界专属属性 (Unique Attributes)</label>
+                <div style="background:#333; padding:10px; border:1px solid #555; border-radius:4px;">
+                    <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px;">
+                        ${(item.uniqueAttributes || []).map(attr => `
+                            <span style="background:#444; padding:2px 8px; border-radius:10px; font-size:0.9em; display:flex; align-items:center; gap:5px;">
+                                ${attr}
+                                <button onclick="app.removeWorldAttr('${item.id}', '${attr}')" style="background:none; border:none; color:#cf6679; cursor:pointer; font-weight:bold;">×</button>
+                            </span>
+                        `).join('')}
+                    </div>
+                    <div class="flex-row">
+                        <input type="text" id="new-world-attr" placeholder="新属性名 (New Attribute)" style="flex:1;">
+                        <button class="btn btn-success" onclick="app.addWorldAttr('${item.id}')">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>结局触发条件 (Ending Triggers)</label>
+                <div style="background:#333; padding:10px; border:1px solid #555; border-radius:4px;">
+                    <div style="margin-bottom:10px; font-size:0.9em; color:#aaa;">满足条件时自动触发指定结局 (例: 年龄 >= 寿元 -> 寿尽)</div>
+                    ${(item.endingRules || []).map((rule, idx) => `
+                        <div class="flex-row" style="margin-bottom:5px; gap:5px; background:#444; padding:5px; border-radius:4px;">
+                            <span style="color:#fff;">${rule.left}</span>
+                            <span style="color:#cc7832;">${rule.op}</span>
+                            <span style="color:#fff;">${rule.right}</span>
+                            <span style="color:#aaa;">→</span>
+                            <span style="color:#9876aa; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                ${(this.data.endings.find(e => e.id === rule.endingId) || { name: rule.endingId }).name}
+                            </span>
+                            <button class="btn btn-danger" style="padding:0 5px;" onclick="app.removeEndingRule('${item.id}', ${idx})">×</button>
+                        </div>
+                    `).join('')}
+                    
+                    <div class="flex-row" style="gap:5px; margin-top:10px; padding-top:10px; border-top:1px solid #555;">
+                        <select id="rule-left" style="width:100px;" onchange="app.updateTempRule('${item.id}', 'left', this.value)">
+                            <option value="age" ${this.tempEndingRules[item.id]?.left === 'age' ? 'selected' : ''}>年龄 (Age)</option>
+                            ${(item.uniqueAttributes || []).map(a => `<option value="${a}" ${this.tempEndingRules[item.id]?.left === a ? 'selected' : ''}>${a}</option>`).join('')}
+                        </select>
+                        <select id="rule-op" style="width:60px;" onchange="app.updateTempRule('${item.id}', 'op', this.value)">
+                            <option value=">=" ${this.tempEndingRules[item.id]?.op === '>=' ? 'selected' : ''}>≥</option>
+                            <option value="<=" ${this.tempEndingRules[item.id]?.op === '<=' ? 'selected' : ''}>≤</option>
+                            <option value="==" ${this.tempEndingRules[item.id]?.op === '==' ? 'selected' : ''}>=</option>
+                            <option value=">" ${this.tempEndingRules[item.id]?.op === '>' ? 'selected' : ''}>></option>
+                            <option value="<" ${this.tempEndingRules[item.id]?.op === '<' ? 'selected' : ''}><</option>
+                        </select>
+                        <input type="text" id="rule-right" placeholder="数值/属性名" style="width:80px;" 
+                            value="${this.tempEndingRules[item.id]?.right || ''}" 
+                            oninput="app.updateTempRule('${item.id}', 'right', this.value)">
+                        <span style="color:#aaa;">→</span>
+                        <select id="rule-ending" style="flex:1;" onchange="app.updateTempRule('${item.id}', 'endingId', this.value)">
+                            <option value="">-- 选择结局 --</option>
+                            ${this.data.endings.filter(e => !e.worldId || e.worldId === item.id).map(e => `<option value="${e.id}" ${this.tempEndingRules[item.id]?.endingId === e.id ? 'selected' : ''}>[${e.priority || 0}] ${e.name}</option>`).join('')}
+                        </select>
+                        <button class="btn btn-success" onclick="app.addEndingRule('${item.id}')">+</button>
+                    </div>
+                </div>
+            </div>
+        `;
+            },
+
+            addEndingRule(worldId) {
+                const left = document.getElementById('rule-left').value;
+                const op = document.getElementById('rule-op').value;
+                let right = document.getElementById('rule-right').value;
+                const endingId = document.getElementById('rule-ending').value;
+
+                if (right) right = right.trim();
+
+                if (!left || !op || !right || !endingId) {
+                    alert('请填写完整规则!');
+                    return;
+                }
+
+                const world = this.data.worlds.find(w => w.id === worldId);
+                if (world) {
+                    if (!world.endingRules) world.endingRules = [];
+                    world.endingRules.push({ left, op, right, endingId });
+
+                    // Clear temp state
+                    if (this.tempEndingRules[worldId]) {
+                        delete this.tempEndingRules[worldId];
+                    }
+                    this.render();
+                }
+            },
+
+            updateTempRule(worldId, key, val) {
+                if (!this.tempEndingRules[worldId]) {
+                    this.tempEndingRules[worldId] = { left: 'age', op: '>=', right: '', endingId: '' };
+                }
+                this.tempEndingRules[worldId][key] = val;
+            },
+
+            removeEndingRule(worldId, idx) {
+                const world = this.data.worlds.find(w => w.id === worldId);
+                if (world && world.endingRules) {
+                    world.endingRules.splice(idx, 1);
+                    this.render();
+                }
+
+            },
+
+            addWorldAttr(worldId) {
+                const input = document.getElementById('new-world-attr');
+                const val = input.value.trim();
+                if (!val) return;
+
+                const world = this.data.worlds.find(w => w.id === worldId);
+                if (world) {
+                    if (!world.uniqueAttributes) world.uniqueAttributes = [];
+                    if (!world.uniqueAttributes.includes(val)) {
+                        world.uniqueAttributes.push(val);
+                        this.render();
+                    }
+                }
+            },
+
+            removeWorldAttr(worldId, attr) {
+                const world = this.data.worlds.find(w => w.id === worldId);
+                if (world && world.uniqueAttributes) {
+                    world.uniqueAttributes = world.uniqueAttributes.filter(a => a !== attr);
+                    this.render();
+                }
+            },
+
+            renderTalentForm(container, item) {
+                container.innerHTML = `
+            <h3>编辑天赋 (Edit Talent)</h3>
+            <div class="form-group"><label>天赋名称 (Name)</label><input type="text" value="${item.name || ''}" onchange="app.updateItem('name', this.value)"></div>
+            <div class="form-group"><label>世界ID (World ID)</label>
+                <select onchange="app.updateItem('worldId', this.value)">
+                    <option value="">-- 选择世界 --</option>
+                    ${this.data.worlds.map(w => `<option value="${w.id}" ${w.id === item.worldId ? 'selected' : ''}>${w.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="flex-row">
+                <div class="form-group" style="flex:1;"><label>最小年龄 (Min Age)</label><input type="number" value="${item.minAge || 0}" onchange="app.updateItem('minAge', parseInt(this.value))"></div>
+                <div class="form-group" style="flex:1;"><label>最大年龄 (Max Age)</label><input type="number" value="${item.maxAge || 0}" onchange="app.updateItem('maxAge', parseInt(this.value))"></div>
+                <div class="form-group" style="width:100px;">
+                    <label>品质 (Quality)</label>
+                    <select onchange="app.updateItem('grade', parseInt(this.value))" style="color:${this.getQualityColor(item.grade)}; font-weight:bold;">
+                        <option value="0" ${item.grade === 0 ? 'selected' : ''} style="color:#e0e0e0;">普通 (White)</option>
+                        <option value="1" ${item.grade === 1 ? 'selected' : ''} style="color:#42a5f5;">稀有 (Blue)</option>
+                        <option value="2" ${item.grade === 2 ? 'selected' : ''} style="color:#ab47bc;">史诗 (Purple)</option>
+                        <option value="3" ${item.grade === 3 ? 'selected' : ''} style="color:#ffa726;">传说 (Orange)</option>
+                        <option value="4" ${item.grade === 4 ? 'selected' : ''} style="color:#ef5350;">神话 (Red)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group"><label>天赋描述 (Desc)</label><input type="text" value="${item.desc || ''}" onchange="app.updateItem('desc', this.value)"></div>
+            <div class="form-group"><label>天赋文本 (Text)</label><textarea rows="3" oninput="app.updateItemSilent('text', this.value)">${item.text || ''}</textarea></div>
+        `;
+                // Visual Condition Editor for talent
+                // Visual Condition Editor for talent - REMOVED per user request
+                // this.renderConditionEditor(container, item);
+                this.renderEffectEditor(container, item, 'effect');
+
+                // Visual choice editor for talent - REMOVED per user request
+                // this.renderChoiceEditor(container, item);
+            },
+
+            renderEventForm(container, item) {
+                container.innerHTML = `
+            <h3>编辑事件 (Edit Event)</h3>
+            <div class="form-group">
+                <label>事件ID (Event ID)</label>
+                <div class="flex-row">
+                    <input type="text" value="${item.id}" readonly style="flex:1; background:#333; color:#aaa; font-family:monospace;">
+                    <button class="btn" onclick="navigator.clipboard.writeText('${item.id}'); alert('ID已复制!')" title="复制ID">📋</button>
+                    <button class="btn btn-warning" onclick="app.regenerateEventId('${item.id}')" title="重新生成短ID">🔄</button>
+                </div>
+            </div>
+            <div class="form-group"><label>世界ID (World ID)</label>
+                <select onchange="app.updateItem('worldId', this.value)">
+                    <option value="">-- 选择世界 --</option>
+                    ${this.data.worlds.map(w => `<option value="${w.id}" ${w.id === item.worldId ? 'selected' : ''}>${w.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="flex-row">
+                <div class="form-group" style="flex:1;"><label>最小年龄 (Min Age)</label><input type="number" value="${item.minAge || 0}" onchange="app.updateItem('minAge', parseInt(this.value))"></div>
+                <div class="form-group" style="flex:1;"><label>最大年龄 (Max Age)</label><input type="number" value="${item.maxAge || 100}" onchange="app.updateItem('maxAge', parseInt(this.value))"></div>
+                <div class="form-group" style="width:80px;"><label>概率%</label><input type="number" min="0" max="100" value="${item.prob !== undefined ? item.prob : 100}" onchange="app.updateItem('prob', parseFloat(this.value))"></div>
+            </div>
+            <div class="form-group">
+                <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" ${item.once ? 'checked' : ''} onchange="app.updateItem('once', this.checked)" style="width:auto;">
+                    仅触发一次 (Once)
+                </label>
+            </div>
+            <div class="form-group"><label>事件内容 (Text)</label><textarea rows="3" oninput="app.updateItemSilent('text', this.value)">${item.text || ''}</textarea></div>
+                `;
+                // Visual Condition Editor
+                this.renderConditionEditor(container, item);
+
+                this.renderEffectEditor(container, item, 'effect');
+
+                // Visual Choice Editor
+                this.renderChoiceEditor(container, item);
+            },
+
+            // --- Visual Effect Editor ---
+            renderEffectEditor(container, item, fieldName = 'effect') {
+                const effect = item[fieldName] || {};
+                const worldId = item.worldId;
+                const world = this.data.worlds.find(w => w.id === worldId);
+
+                // Base attributes from world + Globals
+                let availableAttrs = [];
+                if (world) {
+                    availableAttrs = [...(world.uniqueAttributes || [])]; // Fix: Safety check
+                } else {
+                    availableAttrs = ['请先选择世界'];
+                }
+
+                let html = '<div style="background:#222; padding:10px; border-radius:4px; border:1px solid #444;">';
+
+                // Existing Effects
+                const entries = Object.entries(effect);
+                if (entries.length === 0) {
+                    html += '<div style="color:#666; font-size:0.9em; margin-bottom:5px;">无效果</div>';
+                }
+
+                entries.forEach(([key, val]) => {
+                    html += `
+                    <div class="flex-row" style="margin-bottom:5px;">
+                    <span style="width:80px; color:#aaa; font-size:0.9em;">${key}</span>
+                    <input type="number" value="${val}" style="flex:1;" 
+                        onchange="app.updateEffect('${item.id}', '${fieldName}', '${key}', parseFloat(this.value))">
+                    <button class="btn btn-danger" style="padding:2px 8px;" 
+                        onclick="app.removeEffect('${item.id}', '${fieldName}', '${key}')">x</button>
+                </div>
+                `;
+                });
+
+                // Add New Effect UI
+                html += `
+                    <div class="flex-row" style="margin-top:10px; border-top:1px solid #444; padding-top:10px;">
+                <select id="new-attr-${item.id}" style="flex:1;">
+                    ${availableAttrs.map(a => `<option value="${a}">${a}</option>`).join('')}
+                </select>
+                <input type="number" id="new-val-${item.id}" placeholder="0" style="width:60px;">
+                <button class="btn btn-success" style="padding:4px 10px;"
+                    onclick="app.addEffect('${item.id}', '${fieldName}')">+</button>
+            </div>
+                `;
+
+                html += '</div>';
+                // Append directly to container instead of innerHTML replacement to avoid losing focus if used inside loop (not case here)
+                const wrapper = document.createElement('div');
+                wrapper.className = 'form-group';
+                wrapper.innerHTML = `<label>效果 (Effects)</label>${html}`;
+                container.appendChild(wrapper);
+            },
+
+            // --- Ending Renderer ---
+            renderEndingList(container, list, renderer) {
+                const wrapper = document.createElement('div');
+                wrapper.style.display = 'flex';
+                wrapper.style.height = '100%';
+                wrapper.style.gap = '20px';
+
+                const listCol = document.createElement('div');
+                listCol.style.width = '300px';
+                listCol.style.overflowY = 'auto';
+                listCol.style.paddingRight = '10px';
+
+                // Group by World
+                const groups = {};
+                this.data.worlds.forEach(w => groups[w.id] = { name: w.name, endings: [] });
+                groups['__unassigned'] = { name: '未分配 (Unassigned)', endings: [] };
+
+                list.forEach(e => {
+                    if (groups[e.worldId]) {
+                        groups[e.worldId].endings.push(e);
+                    } else {
+                        groups['__unassigned'].endings.push(e);
+                    }
+                });
+
+                // Render Groups
+                Object.keys(groups).forEach(worldId => {
+                    const group = groups[worldId];
+                    if (group.endings.length === 0 && worldId === '__unassigned') return;
+
+                    const details = document.createElement('details');
+                    details.open = true;
+                    details.style.marginBottom = '10px';
+                    details.style.border = '1px solid #444';
+                    details.style.borderRadius = '4px';
+                    details.style.background = '#222';
+
+                    const summary = document.createElement('summary');
+                    summary.style.padding = '8px';
+                    summary.style.cursor = 'pointer';
+                    summary.style.fontWeight = 'bold';
+                    summary.style.background = '#333';
+                    summary.style.display = 'flex';
+                    summary.style.justifyContent = 'space-between';
+                    summary.style.alignItems = 'center';
+                    summary.innerHTML = `<span>${group.name} (${group.endings.length})</span>`;
+
+                    const addGrpBtn = document.createElement('button');
+                    addGrpBtn.className = 'btn btn-success';
+                    addGrpBtn.innerText = '+';
+                    addGrpBtn.title = '添加结局 (Add Ending)';
+                    addGrpBtn.style.padding = '2px 8px';
+                    addGrpBtn.style.fontSize = '0.8em';
+                    addGrpBtn.style.lineHeight = '1';
+                    addGrpBtn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const newItem = {
+                            id: 'end_' + Math.random().toString(36).substr(2, 6),
+                            name: '新结局 (New Ending)',
+                            desc: '结局描述',
+                            worldId: worldId === '__unassigned' ? '' : worldId,
+                            priority: 50,
+                            text: '<h1>结局标题</h1><p>结局内容...</p>',
+                            conditions: []
+                        };
+                        this.data.endings.push(newItem);
+                        this.selectedId = newItem.id;
+                        this.render();
+                    };
+                    summary.appendChild(addGrpBtn);
+                    details.appendChild(summary);
+
+                    const content = document.createElement('div');
+                    content.style.padding = '5px';
+
+                    // Sort by priority descending
+                    group.endings.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+                    group.endings.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = `list-item ${item.id === this.selectedId ? 'selected' : ''}`;
+                        div.style.fontSize = '0.9em';
+                        div.style.marginBottom = '2px';
+                        div.innerHTML = `<span style="font-weight:bold; color:#ffa726; margin-right:5px;">[${item.priority || 0}]</span>${item.name}`;
+                        div.onclick = (e) => {
+                            e.stopPropagation();
+                            this.selectedId = item.id;
+                            this.render();
+                        };
+
+                        const delBtn = document.createElement('button');
+                        delBtn.innerText = 'x';
+                        delBtn.className = 'btn btn-danger';
+                        delBtn.style.padding = '0px 5px';
+                        delBtn.style.marginLeft = 'auto';
+                        delBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            if (confirm('确定删除该结局吗?')) {
+                                const idx = this.data.endings.indexOf(item);
+                                this.data.endings.splice(idx, 1);
+                                if (this.selectedId === item.id) this.selectedId = null;
+                                this.render();
+                            }
+                        };
+                        div.appendChild(delBtn);
+                        content.appendChild(div);
+                    });
+
+                    details.appendChild(content);
+                    listCol.appendChild(details);
+                });
+
+                const formCol = document.createElement('div');
+                formCol.style.flexGrow = 1;
+                formCol.style.overflowY = 'auto';
+                formCol.style.paddingLeft = '10px';
+
+                if (this.selectedId) {
+                    const item = list.find(x => x.id === this.selectedId);
+                    if (item && renderer) {
+                        renderer.call(this, formCol, item);
+                    }
+                } else {
+                    formCol.innerHTML = '<div style="color:#666; text-align:center; margin-top:50px;">请选择或添加结局</div>';
+                }
+
+                wrapper.appendChild(listCol);
+                wrapper.appendChild(formCol);
+                container.appendChild(wrapper);
+            },
+
+            renderEndingForm(container, item) {
+                container.innerHTML = `
+            <h3>编辑结局 (Edit Ending)</h3>
+            <div class="form-group"><label>ID</label><input type="text" value="${item.id}" readonly style="background:#333; color:#888;"></div>
+            <div class="form-group"><label>所属世界 (World)</label>
+                <select onchange="app.updateItem('worldId', this.value)">
+                    <option value="">-- 选择世界 --</option>
+                    ${this.data.worlds.map(w => `<option value="${w.id}" ${w.id === item.worldId ? 'selected' : ''}>${w.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group"><label>结局名称 (Name)</label><input type="text" value="${item.name}" onchange="app.updateItem('name', this.value)"></div>
+            <div class="form-group"><label>简述 (Desc)</label><input type="text" value="${item.desc}" onchange="app.updateItem('desc', this.value)"></div>
+            <div class="form-group"><label>优先级 (Priority, 高优先)</label><input type="number" value="${item.priority || 0}" onchange="app.updateItem('priority', parseInt(this.value))"></div>
+            
+            <div class="form-group"><label>结局内容 (HTML)</label>
+                <textarea rows="6" oninput="app.updateItemSilent('text', this.value)" style="font-family:monospace;">${item.text || ''}</textarea>
+                <small style="color:#666;">支持HTML标签: &lt;h1&gt;, &lt;p&gt;, &lt;img&gt; 等</small>
+            </div>
+                `;
+                this.renderConditionEditor(container, item);
+            },
+
+            // Helper methods for effect updates
+            updateEffect(itemId, field, key, val) {
+                // Find item in current list
+                let list = this.currentView === 'timeline' ? this.data.events : this.getList(this.currentView);
+                const item = list.find(x => x.id === itemId);
+                if (item) {
+                    if (!item[field]) item[field] = {};
+                    item[field][key] = val;
+                    // Trigger Re-render
+                    this.render();
+
+                    // Restore focus tricky? 
+                    // Actually, re-rendering destroys DOM.
+                    // For simple inputs, onchange runs AFTER blur/enter, so re-render is fine.
+                }
+            },
+
+            removeEffect(itemId, field, key) {
+                let list = this.currentView === 'timeline' ? this.data.events : this.getList(this.currentView);
+                const item = list.find(x => x.id === itemId);
+                if (item && item[field]) {
+                    delete item[field][key];
+                    this.render();
+                }
+            },
+
+            addEffect(itemId, field) {
+                const key = document.getElementById(`new-attr-${itemId}`).value;
+                const valInput = document.getElementById(`new-val-${itemId}`);
+                const val = parseFloat(valInput.value) || 0;
+
+                if (key === '请先选择世界') return;
+
+                let list = this.currentView === 'timeline' ? this.data.events : this.getList(this.currentView);
+                const item = list.find(x => x.id === itemId);
+                if (item) {
+                    if (!item[field]) item[field] = {};
+                    item[field][key] = val;
+                    this.render();
+                }
+            },
+
+            // --- Appearance / Theme Editor ---
+            renderAppearance(container) {
+                if (!this.data.theme) {
+                    this.data.theme = {
+                        title: '反派模拟器', subtitle: 'Core Engine v1.0',
+                        bgColor: '#121212', textColor: '#e0e0e0', accentColor: '#bb86fc',
+                        secondaryColor: '#03dac6', panelBg: '#1e1e1e', borderColor: '#333'
+                    };
+                }
+                const t = this.data.theme;
+
+                container.innerHTML = `
+            <h3>🎨 外观设置</h3>
+
+            <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:stretch;">
+                <!-- Left: Settings -->
+                <div style="flex:1; min-width:280px; display:flex; flex-direction:column; gap:15px;">
+                    <div style="background:#222; padding:15px; border:1px solid #444; border-radius:4px;">
+                        <h4 style="margin-top:0;">游戏标题</h4>
+                        <div class="form-group">
+                            <label>主标题</label>
+                            <input type="text" value="${t.title}" oninput="app.updateTheme('title', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>副标题</label>
+                            <input type="text" value="${t.subtitle}" oninput="app.updateTheme('subtitle', this.value)">
+                        </div>
+                    </div>
+
+                    <div style="background:#222; padding:15px; border:1px solid #444; border-radius:4px; flex:1;">
+                        <h4 style="margin-top:0;">界面颜色</h4>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div class="form-group">
+                                <label>背景色</label>
+                                <div class="flex-row" style="gap:5px;">
+                                    <input type="color" value="${t.bgColor}" onchange="app.updateTheme('bgColor', this.value)" style="width:40px; height:30px; padding:0; border:none; cursor:pointer;">
+                                    <input type="text" value="${t.bgColor}" oninput="app.updateTheme('bgColor', this.value)" style="flex:1; font-family:monospace;">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>文字色</label>
+                                <div class="flex-row" style="gap:5px;">
+                                    <input type="color" value="${t.textColor}" onchange="app.updateTheme('textColor', this.value)" style="width:40px; height:30px; padding:0; border:none; cursor:pointer;">
+                                    <input type="text" value="${t.textColor}" oninput="app.updateTheme('textColor', this.value)" style="flex:1; font-family:monospace;">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>主题色 (标题/按钮)</label>
+                                <div class="flex-row" style="gap:5px;">
+                                    <input type="color" value="${t.accentColor}" onchange="app.updateTheme('accentColor', this.value)" style="width:40px; height:30px; padding:0; border:none; cursor:pointer;">
+                                    <input type="text" value="${t.accentColor}" oninput="app.updateTheme('accentColor', this.value)" style="flex:1; font-family:monospace;">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>辅助色 (高亮)</label>
+                                <div class="flex-row" style="gap:5px;">
+                                    <input type="color" value="${t.secondaryColor}" onchange="app.updateTheme('secondaryColor', this.value)" style="width:40px; height:30px; padding:0; border:none; cursor:pointer;">
+                                    <input type="text" value="${t.secondaryColor}" oninput="app.updateTheme('secondaryColor', this.value)" style="flex:1; font-family:monospace;">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>面板背景</label>
+                                <div class="flex-row" style="gap:5px;">
+                                    <input type="color" value="${t.panelBg}" onchange="app.updateTheme('panelBg', this.value)" style="width:40px; height:30px; padding:0; border:none; cursor:pointer;">
+                                    <input type="text" value="${t.panelBg}" oninput="app.updateTheme('panelBg', this.value)" style="flex:1; font-family:monospace;">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>边框色</label>
+                                <div class="flex-row" style="gap:5px;">
+                                    <input type="color" value="${t.borderColor}" onchange="app.updateTheme('borderColor', this.value)" style="width:40px; height:30px; padding:0; border:none; cursor:pointer;">
+                                    <input type="text" value="${t.borderColor}" oninput="app.updateTheme('borderColor', this.value)" style="flex:1; font-family:monospace;">
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn" style="width:100%; margin-top:10px; background:#333;" onclick="app.resetTheme()">↩ 恢复默认颜色</button>
+                    </div>
+                </div>
+
+                <!-- Right: Live Preview -->
+                <div style="flex:1; min-width:280px; display:flex; flex-direction:column;">
+                    <div style="background:#222; padding:15px; border:1px solid #444; border-radius:4px; flex:1; display:flex; flex-direction:column;">
+                        <h4 style="margin-top:0;">开始界面预览</h4>
+                        <div id="theme-preview" style="
+                            background:${t.bgColor};
+                            color:${t.textColor};
+                            border:2px solid ${t.borderColor};
+                            border-radius:8px;
+                            overflow:hidden;
+                            max-width:320px;
+                            margin:0 auto;
+                            flex:1;
+                            width:100%;
+                            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                        ">
+                            <!-- Simulated phone frame -->
+                            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; padding:20px; text-align:center;">
+                                <div style="flex:1;"></div>
+                                <h1 style="color:${t.accentColor}; margin:0; font-size:1.8em;">${t.title}</h1>
+                                <small style="color:#666; font-size:0.8em;">${t.subtitle}</small>
+                                <div style="flex:1;"></div>
+                                <button style="
+                                    width:100%;
+                                    padding:14px;
+                                    font-size:1.1em;
+                                    font-weight:bold;
+                                    background:${t.accentColor};
+                                    color:${t.bgColor};
+                                    border:none;
+                                    border-radius:4px;
+                                    cursor:pointer;
+                                    margin-bottom:10px;
+                                ">开始游戏</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+            },
+
+            updateTheme(key, value) {
+                if (!this.data.theme) this.data.theme = {};
+                this.data.theme[key] = value;
+                // Only update the preview, not the whole form (prevents losing input focus)
+                const preview = document.getElementById('theme-preview');
+                if (preview) {
+                    const t = this.data.theme;
+                    preview.style.background = t.bgColor;
+                    preview.style.color = t.textColor;
+                    preview.style.borderColor = t.borderColor;
+                    preview.innerHTML = this._buildPreviewInner(t);
+                }
+            },
+
+            _buildPreviewInner(t) {
+                return `
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; padding:20px; text-align:center;">
+                        <div style="flex:1;"></div>
+                        <h1 style="color:${t.accentColor}; margin:0; font-size:1.8em;">${t.title}</h1>
+                        <small style="color:#666; font-size:0.8em;">${t.subtitle}</small>
+                        <div style="flex:1;"></div>
+                        <button style="width:100%; padding:14px; font-size:1.1em; font-weight:bold; background:${t.accentColor}; color:${t.bgColor}; border:none; border-radius:4px; cursor:pointer; margin-bottom:10px;">开始游戏</button>
+                    </div>`;
+            },
+
+            resetTheme() {
+                this.data.theme = {
+                    title: '反派模拟器', subtitle: 'Core Engine v1.0',
+                    bgColor: '#121212', textColor: '#e0e0e0', accentColor: '#bb86fc',
+                    secondaryColor: '#03dac6', panelBg: '#1e1e1e', borderColor: '#333'
+                };
+                this.render();
+            },
+
+            renderExport(container) {
+                container.innerHTML = `
+            <h3>测试与导出</h3>
+            
+            <div style="background:#222; padding:15px; margin-bottom:20px; border:1px solid #444;">
+                <h4 style="margin-top:0;">1. 快速测试 (Quick Test)</h4>
+                <p style="font-size:0.9em; color:#aaa;">保存当前配置到浏览器缓存并启动游戏。</p>
+                <button class="btn btn-primary" onclick="app.playDebug()">▶ 启动测试 / 调试 (Play / Debug)</button>
+            </div>
+
+            <div style="background:#222; padding:15px; margin-bottom:20px; border:1px solid #444;">
+                <h4 style="margin-top:0;">2. 导出 / 生成游戏 (Export)</h4>
+                <div class="flex-row" style="gap:10px; flex-wrap:wrap;">
+                    <button class="btn" style="background:#8e44ad; color:white;" onclick="app.downloadJSON()">下载 JSON 配置</button>
+                    <button class="btn btn-success" onclick="app.generateStandalone()">⬇ 生成独立游戏 (index.html)</button>
+                </div>
+            </div>
+
+            <div style="background:#222; padding:15px; border:1px solid #444;">
+                <h4 style="margin-top:0;">3. 导入配置 (Import)</h4>
+                <div class="flex-row" style="gap:10px; margin-bottom:10px;">
+                    <input type="file" id="import-file" accept=".json,.yaml,.yml,.txt" style="flex:1;">
+                    <button class="btn btn-success" onclick="app.importFromFile()">导入文件</button>
+                </div>
+                <textarea id="io-area" style="height:80px; font-family:monospace; margin-bottom:10px;" placeholder="或粘贴 JSON / 配置表..."></textarea>
+                <div class="flex-row" style="gap:10px;">
+                    <button class="btn btn-success" onclick="app.importFromArea()">导入 JSON 文本</button>
+                    <button class="btn" style="background:#2980b9; color:white;" onclick="app.importConfigFromArea()">导入配置表</button>
+                </div>
+            </div>
+
+            <div style="background:#222; padding:15px; margin-top:20px; border:1px solid #444;">
+                <h4 style="margin-top:0;">4. 📋 配置表</h4>
+                <p style="font-size:0.9em; color:#aaa;">生成结构化配置表，可交给 AI 填写内容后导入。格式清晰、带字段说明和示例。</p>
+                <div class="flex-row" style="gap:10px; flex-wrap:wrap;">
+                    <button class="btn" style="background:#e67e22; color:white;" onclick="app.generateConfigTemplate()">📋 生成空白配置表</button>
+                    <button class="btn" style="background:#27ae60; color:white;" onclick="app.generateConfigTemplateFromData()">📋 从当前数据生成配置表</button>
+                </div>
+            </div>
+                `;
+            },
+
+            playDebug() {
+                // Check for unsaved ending rules
+                const hasUnsavedRules = Object.values(this.tempEndingRules || {}).some(r => r.right || r.endingId);
+                if (hasUnsavedRules) {
+                    if (!confirm('检测到您有未保存的结局触发规则（已填写但未点击添加按钮）。\n这些规则不会在测试中生效。\n是否继续？')) {
+                        return;
+                    }
+                }
+                localStorage.setItem('VILLAIN_SIM_DEBUG', JSON.stringify(this.data));
+                window.open('game.html', '_blank');
+            },
+
+            downloadJSON() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", "villain_config.json");
+                document.body.appendChild(downloadAnchorNode); // required for firefox
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            },
+
+            _downloadText(text, filename) {
+                const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(text);
+                const a = document.createElement('a');
+                a.setAttribute("href", dataStr);
+                a.setAttribute("download", filename);
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            },
+
+            _generateShortId() {
+                return 'e_' + Math.random().toString(36).substr(2, 6);
+            },
+
+            regenerateEventId(oldId) {
+                if (!confirm('警告：重新生成ID会导致引用该事件的选项失效！确定要继续吗？')) return;
+                const newId = this._generateShortId();
+                const item = this.data.events.find(e => e.id === oldId);
+                if (item) {
+                    item.id = newId;
+                    this.selectedId = newId;
+                    this.render();
+                }
+            },
+
+            getQualityColor(grade) {
+                const colors = ['#e0e0e0', '#42a5f5', '#ab47bc', '#ffa726', '#ef5350'];
+                return colors[grade || 0] || colors[0];
+            },
+
+            // --- AI Config Template ---
+            _buildConfigTemplate(data) {
+                const d = data || {};
+                const theme = d.theme || {};
+                const worlds = d.worlds || [];
+                const talents = d.talents || [];
+                const events = d.events || [];
+
+                let lines = [];
+                lines.push('# ========================================');
+                lines.push('# 游戏配置表 (Game Configuration Template)');
+                lines.push('# ========================================');
+                lines.push('# 说明: 请按照格式填写，每个字段前有中文说明。');
+                lines.push('# AI 填写指南: 保持缩进和格式不变，只修改 ":" 后面的值。');
+                lines.push('# 填写完成后，在编辑器中点击"导入配置表"导入。');
+                lines.push('');
+
+                // --- Theme ---
+                lines.push('# ----------------------------------------');
+                lines.push('# 一、外观设置 (Theme)');
+                lines.push('# ----------------------------------------');
+                lines.push(`游戏标题: ${theme.title || '我的游戏'}`);
+                lines.push(`副标题: ${theme.subtitle || 'v1.0'}`);
+                lines.push(`背景色: ${theme.bgColor || '#121212'}`);
+                lines.push(`文字色: ${theme.textColor || '#e0e0e0'}`);
+                lines.push(`主题色: ${theme.accentColor || '#bb86fc'}`);
+                lines.push(`辅助色: ${theme.secondaryColor || '#03dac6'}`);
+                lines.push(`面板背景色: ${theme.panelBg || '#1e1e1e'}`);
+                lines.push(`边框色: ${theme.borderColor || '#333'}`);
+                lines.push(`属性点数: ${d.initialPoints || 20}`);
+                lines.push('');
+
+                // --- Worlds ---
+                lines.push('# ----------------------------------------');
+                lines.push('# 二、世界列表 (Worlds)');
+                lines.push('# 每个世界定义一套独立的属性体系');
+                lines.push('# 格式: 世界ID | 世界名称 | 描述 | 属性1,属性2,属性3,...');
+                lines.push('# ----------------------------------------');
+                if (worlds.length > 0) {
+                    worlds.forEach(w => {
+                        lines.push(`世界: ${w.id} | ${w.name} | ${w.desc} | ${w.uniqueAttributes.join(',')}`);
+                    });
+                } else {
+                    lines.push('# 示例:');
+                    lines.push('世界: w_fantasy | 修仙世界 | 一个充满灵气的修仙大陆 | 修为,根骨,魔念,寿元');
+                    lines.push('世界: w_city | 都市世界 | 现代都市生活 | 智商,体魄,金钱,人脉');
+                }
+                lines.push('');
+
+                // --- Talents ---
+                lines.push('# ----------------------------------------');
+                lines.push('# 三、天赋列表 (Talents)');
+                lines.push('# 玩家开局可抽取的天赋，每个天赋附带属性加成');
+                lines.push('# 格式: 天赋ID | 所属世界ID | 天赋名 | 描述 | 属性名:加成值,属性名:加成值,...');
+                lines.push('# 可选字段 (写在天赋行下方，缩进2空格):');
+                lines.push('#   品质: 0-4           — 天赋品质 (0:白, 1:蓝, 2:紫, 3:橙, 4:红)');
+                lines.push('#   文本: xxx           — 天赋详细文本');
+                lines.push('#   年龄: min-max       — 天赋适用年龄范围');
+                lines.push('#   年龄: min-max       — 天赋适用年龄范围');
+                // lines.push('#   条件: 属性名 > 数值    — 触发条件 (支持 > < = >= <= != has)'); // Removed
+                // lines.push('#   选项: 选项文本 | 属性名:变化值,... | 后续事件ID    — 添加选择分支'); // Removed
+                lines.push('# ----------------------------------------');
+                if (talents.length > 0) {
+                    talents.forEach(t => {
+                        const eff = Object.entries(t.effect || {}).map(([k, v]) => `${k}:${v}`).join(',');
+                        lines.push(`天赋: ${t.id} | ${t.worldId} | ${t.name} | ${t.desc || ''} | ${eff}`);
+                        if (t.grade > 0) lines.push(`  品质: ${t.grade}`);
+                        if (t.text) lines.push(`  文本: ${t.text}`);
+                        if (t.minAge !== undefined || t.maxAge !== undefined) {
+                            lines.push(`  年龄: ${t.minAge || 0}-${t.maxAge || 0}`);
+                        }
+                        if (t.minAge !== undefined || t.maxAge !== undefined) {
+                            lines.push(`  年龄: ${t.minAge || 0}-${t.maxAge || 0}`);
+                        }
+                        // Conditions removed for talents
+
+                        // Choices removed for talents
+                        /*
+                        if (t.choices && t.choices.length > 0) {
+                            t.choices.forEach(ch => {
+                                const chEff = Object.entries(ch.effect || {}).map(([k, v]) => `${k}:${v}`).join(',');
+                                let chLine = `  选项: ${ch.text} | ${chEff}`;
+                                if (ch.nextEventId) chLine += ` | ${ch.nextEventId}`;
+                                lines.push(chLine);
+                            });
+                        }
+                        */
+                    });
+                } else {
+                    lines.push('# 示例:');
+                    lines.push('天赋: t_f_1 | w_fantasy | 天生魔种 | 魔念大增 | 魔念:5');
+                    lines.push('天赋: t_c_1 | w_city | 富二代 | 家境优渥 | 金钱:10');
+                }
+                lines.push('');
+
+                // --- Events ---
+                lines.push('# ----------------------------------------');
+                lines.push('# 四、事件列表 (Events)');
+                lines.push('# 游戏中按年龄触发的事件');
+                lines.push('# 基础格式: 事件ID | 所属世界ID | 最小年龄 | 最大年龄 | 事件文本 | 属性名:变化值,...');
+                lines.push('# 可选字段 (写在事件行下方，缩进2空格):');
+                lines.push('#   once: true          — 该事件只触发一次');
+                lines.push('#   概率: 50            — 触发概率 (0-100，默认100)');
+                lines.push('#   条件: 属性名 > 数值    — 触发条件 (支持 > < = >= <= != has)');
+                lines.push('#   选项: 选项文本 | 属性名:变化值,... | 后续事件ID    — 添加选择分支');
+                lines.push('# ----------------------------------------');
+                if (events.length > 0) {
+                    events.forEach(ev => {
+                        const eff = Object.entries(ev.effect || {}).map(([k, v]) => `${k}:${v}`).join(',');
+                        lines.push(`事件: ${ev.id} | ${ev.worldId} | ${ev.minAge} | ${ev.maxAge} | ${ev.text} | ${eff}`);
+                        if (ev.once) lines.push('  once: true');
+                        if (ev.prob !== undefined && ev.prob < 100) lines.push(`  概率: ${ev.prob}`);
+                        if (ev.conditions && ev.conditions.length > 0) {
+                            ev.conditions.forEach(c => {
+                                lines.push(`  条件: ${c.attr} ${c.op} ${c.val}`);
+                            });
+                        }
+                        if (ev.choices && ev.choices.length > 0) {
+                            ev.choices.forEach(ch => {
+                                const chEff = Object.entries(ch.effect || {}).map(([k, v]) => `${k}:${v}`).join(',');
+                                let chLine = `  选项: ${ch.text} | ${chEff}`;
+                                if (ch.nextEventId) chLine += ` | ${ch.nextEventId}`;
+                                lines.push(chLine);
+                            });
+                        }
+                    });
+                } else {
+                    lines.push('# 示例:');
+                    lines.push('事件: e_born | w_fantasy | 0 | 0 | 你出生了。周围魔气缭绕。 | 魔念:1');
+                    lines.push('事件: e_choice | w_fantasy | 10 | 20 | 你发现了一本秘籍。 | ');
+                    lines.push('  once: true');
+                    lines.push('  条件: 魔念 > 3');
+                    lines.push('  选项: 修炼秘籍 | 魔念:5');
+                    lines.push('  选项: 销毁秘籍 | ');
+                }
+                lines.push('');
+
+                // --- Endings ---
+                const endings = d.endings || [];
+                lines.push('# ----------------------------------------');
+                lines.push('# 五、结局列表 (Endings)');
+                lines.push('# 游戏结束时的判定');
+                lines.push('# 格式: 结局ID | 所属世界ID | 名称 | 简述 | 优先级');
+                lines.push('# 可选字段:');
+                lines.push('#   条件: 属性名 > 数值   (支持 > < = >= <= != has)');
+                lines.push('#   内容: HTML文本 (支持 \\n 换行)');
+                lines.push('# ----------------------------------------');
+                if (endings.length > 0) {
+                    endings.forEach(e => {
+                        lines.push(`结局: ${e.id} | ${e.worldId || ''} | ${e.name} | ${e.desc || ''} | ${e.priority || 0}`);
+                        if (e.conditions && e.conditions.length > 0) {
+                            e.conditions.forEach(c => {
+                                lines.push(`  条件: ${c.attr} ${c.op} ${c.val || ''}`.trimEnd());
+                            });
+                        }
+                        if (e.text) {
+                            const escapedText = e.text.replace(/\n/g, '\\n');
+                            lines.push(`  内容: ${escapedText}`);
+                        }
+                    });
+                } else {
+                    lines.push('# 示例:');
+                    lines.push('结局: end_1 | w_fantasy | 魔道至尊 | 你成为了魔道至尊 | 10');
+                    lines.push('  条件: 魔念 > 80');
+                    lines.push('  内容: <h1>魔道至尊</h1><p>你终于踏上了魔道的巅峰。</p>');
+                    lines.push('结局: end_2 | w_fantasy | 默默无闻 | 平凡的一生 | 0');
+                }
+                lines.push('');
+                lines.push('# ========== 配置表结束 ==========');
+
+                return lines.join('\n');
+            },
+
+            generateConfigTemplate() {
+                const template = this._buildConfigTemplate({});
+                this._downloadText(template, 'game_config_template.txt');
+                // Also copy to clipboard
+                navigator.clipboard.writeText(template).then(() => {
+                    alert('空白配置表已下载并复制到剪贴板！可直接发给 AI 填写。');
+                }).catch(() => {
+                    alert('空白配置表已下载！');
+                });
+            },
+
+            generateConfigTemplateFromData() {
+                const template = this._buildConfigTemplate(this.data);
+                this._downloadText(template, 'game_config_current.txt');
+                navigator.clipboard.writeText(template).then(() => {
+                    alert('当前数据的配置表已下载并复制到剪贴板！');
+                }).catch(() => {
+                    alert('配置表已下载！');
+                });
+            },
+
+            _downloadText(text, filename) {
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            },
+
+            importConfigFromArea() {
+                const text = document.getElementById('io-area').value.trim();
+                if (!text) { alert('请先粘贴配置表内容！'); return; }
+                this._parseConfigTemplate(text);
+            },
+
+            _parseConfigTemplate(text) {
+                const lines = text.split('\n');
+                const data = {
+                    initialPoints: 20,
+                    theme: { title: '', subtitle: '', bgColor: '#121212', textColor: '#e0e0e0', accentColor: '#bb86fc', secondaryColor: '#03dac6', panelBg: '#1e1e1e', borderColor: '#333' },
+                    worlds: [],
+                    talents: [],
+                    events: [],
+                    endings: []
+                };
+
+                let lastEvent = null;
+                let lastTalent = null;
+                let lastEnding = null;
+
+                for (let raw of lines) {
+                    const line = raw.trim();
+                    if (!line || line.startsWith('#')) continue;
+
+                    // Theme fields
+                    if (line.startsWith('游戏标题:')) { data.theme.title = line.split(':').slice(1).join(':').trim(); continue; }
+                    if (line.startsWith('副标题:')) { data.theme.subtitle = line.split(':').slice(1).join(':').trim(); continue; }
+                    if (line.startsWith('背景色:')) { data.theme.bgColor = line.split(':').slice(1).join(':').trim(); continue; }
+                    if (line.startsWith('文字色:')) { data.theme.textColor = line.split(':').slice(1).join(':').trim(); continue; }
+                    if (line.startsWith('主题色:')) { data.theme.accentColor = line.split(':').slice(1).join(':').trim(); continue; }
+                    if (line.startsWith('辅助色:')) { data.theme.secondaryColor = line.split(':').slice(1).join(':').trim(); continue; }
+                    if (line.startsWith('面板背景色:')) { data.theme.panelBg = line.split(':').slice(1).join(':').trim(); continue; }
+                    if (line.startsWith('边框色:')) { data.theme.borderColor = line.split(':').slice(1).join(':').trim(); continue; }
+                    if (line.startsWith('属性点数:')) { data.initialPoints = parseInt(line.split(':')[1]) || 20; continue; }
+
+                    // Worlds
+                    if (line.startsWith('世界:') || line.startsWith('世界：')) {
+                        const parts = line.substring(3).replace(/｜/g, '|').split('|').map(s => s.trim());
+                        if (parts.length >= 4) {
+                            data.worlds.push({
+                                id: parts[0], name: parts[1], desc: parts[2],
+                                uniqueAttributes: parts[3].replace(/，/g, ',').split(',').map(s => s.trim()).filter(Boolean)
+                            });
+                        }
+                        continue;
+                    }
+
+                    // Talents
+                    if (line.startsWith('天赋:') || line.startsWith('天赋：')) {
+                        const parts = line.substring(3).replace(/｜/g, '|').split('|').map(s => s.trim());
+                        if (parts.length >= 5) {
+                            const effect = {};
+                            parts[4].replace(/，/g, ',').split(',').forEach(pair => {
+                                const [k, v] = pair.replace(/：/g, ':').split(':').map(s => s.trim());
+                                if (k && v !== undefined) effect[k] = parseFloat(v) || 0;
+                            });
+                            const newTalent = {
+                                id: parts[0], worldId: parts[1], name: parts[2], desc: parts[3], effect
+                            };
+                            data.talents.push(newTalent);
+                            lastTalent = newTalent;
+                            lastEvent = null;
+                        }
+                        continue;
+                    }
+
+                    // Events
+                    if (line.startsWith('事件:') || line.startsWith('事件：')) {
+                        const parts = line.substring(3).replace(/｜/g, '|').split('|').map(s => s.trim());
+                        if (parts.length >= 5) {
+                            const effect = {};
+                            if (parts[5]) {
+                                parts[5].replace(/，/g, ',').split(',').forEach(pair => {
+                                    const [k, v] = pair.replace(/：/g, ':').split(':').map(s => s.trim());
+                                    if (k && v !== undefined) effect[k] = parseFloat(v) || 0;
+                                });
+                            }
+                            lastEvent = {
+                                id: parts[0], worldId: parts[1],
+                                minAge: parseInt(parts[2]) || 0, maxAge: parseInt(parts[3]) || 100,
+                                text: parts[4], effect
+                            };
+                            data.events.push(lastEvent);
+                        }
+                        continue;
+                    }
+
+                    // Endings (5-field: ID | worldId | name | desc | priority, or 4-field legacy: ID | name | desc | priority)
+                    if (line.startsWith('结局:') || line.startsWith('结局：')) {
+                        const parts = line.substring(3).replace(/｜/g, '|').split('|').map(s => s.trim());
+                        let newEnding;
+                        if (parts.length >= 5) {
+                            newEnding = {
+                                id: parts[0], worldId: parts[1], name: parts[2], desc: parts[3], priority: parseInt(parts[4]) || 0, text: '', conditions: []
+                            };
+                        } else if (parts.length >= 4) {
+                            newEnding = {
+                                id: parts[0], name: parts[1], desc: parts[2], priority: parseInt(parts[3]) || 0, text: '', conditions: []
+                            };
+                        }
+                        if (newEnding) {
+                            if (!data.endings) data.endings = [];
+                            data.endings.push(newEnding);
+                            lastEnding = newEnding;
+                            lastEvent = null;
+                            lastTalent = null;
+                        }
+                        continue;
+                    }
+
+                    // Sub-fields (indented)
+                    if (lastTalent && raw.startsWith('  ')) {
+                        if (line.startsWith('品质:')) {
+                            lastTalent.grade = parseInt(line.split(':')[1].replace(/：/g, ':')) || 0;
+                        } else if (line.startsWith('文本:')) {
+                            lastTalent.text = line.split(':')[1].replace(/：/g, ':').trim(); // Handle potential double colon if user typed "文本：xxx"
+                            // Actually better: just take substring after first colon
+                            const firstColon = line.indexOf(':') > -1 ? line.indexOf(':') : line.indexOf('：');
+                            if (firstColon > -1) lastTalent.text = line.substring(firstColon + 1).trim();
+                        } else if (line.startsWith('年龄:')) {
+                            const ageVal = line.split(':')[1].replace(/：/g, ':').trim();
+                            const ageParts = ageVal.split('-');
+                            lastTalent.minAge = parseInt(ageParts[0]) || 0;
+                            lastTalent.maxAge = parseInt(ageParts[1]) || 0;
+                        }
+                    }
+
+                    if (lastEnding && raw.startsWith('  ')) {
+                        if (line.startsWith('内容:')) {
+                            // Handle HTML content, potentially multiline but for now simple
+                            const firstColon = line.indexOf(':') > -1 ? line.indexOf(':') : line.indexOf('：');
+                            if (firstColon > -1) lastEnding.text = line.substring(firstColon + 1).trim().replace(/\\n/g, '\n');
+                        } else if (line.startsWith('条件:')) {
+                            const condStr = line.substring(3).trim().replace(/：/g, ':');
+                            const match = condStr.match(/^(\S+)\s*(>=|<=|!=|>|<|=|has)\s*(.*)$/);
+                            if (match) {
+                                const cond = { attr: match[1], op: match[2], val: match[3] };
+                                if (cond.attr !== '天赋') cond.val = parseFloat(cond.val) || 0;
+                                if (!lastEnding.conditions) lastEnding.conditions = [];
+                                lastEnding.conditions.push(cond);
+                            }
+                        }
+                        continue;
+                    }
+
+                    if (lastEvent && raw.startsWith('  ')) {
+                        if (line.startsWith('once:')) {
+                            lastEvent.once = line.split(':')[1].trim() === 'true';
+                        } else if (line.startsWith('概率:')) {
+                            const probStr = line.split(':')[1].replace(/：/g, ':').trim();
+                            lastEvent.prob = parseFloat(probStr) || 100;
+                        } else if (line.startsWith('条件:')) {
+                            const condStr = line.substring(3).trim();
+                            const match = condStr.match(/^(\S+)\s*(>=|<=|!=|>|<|=|has)\s*(.*)$/);
+                            if (match) {
+                                if (!lastEvent.conditions) lastEvent.conditions = [];
+                                const cond = { attr: match[1], op: match[2], val: match[3].trim() };
+                                if (cond.op !== 'has') cond.val = parseFloat(cond.val) || 0;
+                                lastEvent.conditions.push(cond);
+                            }
+                        } else if (line.startsWith('选项:') || line.startsWith('选项：')) {
+                            console.log('[Parser] Found Choice line:', line);
+                            const parts = line.substring(3).replace(/｜/g, '|').split('|').map(s => s.trim());
+                            console.log('[Parser] Split parts:', parts);
+                            if (parts.length >= 1) {
+                                const chEffect = {};
+                                if (parts[1]) {
+                                    parts[1].replace(/，/g, ',').split(',').forEach(pair => {
+                                        const [k, v] = pair.replace(/：/g, ':').split(':').map(s => s.trim());
+                                        if (k && v !== undefined) chEffect[k] = parseFloat(v) || 0;
+                                    });
+                                }
+                                console.log('[Parser] Choice Effect:', chEffect);
+                                const nextEventId = parts[2] ? parts[2].trim() : null;
+                                if (!lastEvent.choices) lastEvent.choices = [];
+                                lastEvent.choices.push({ text: parts[0], effect: chEffect, nextEventId });
+                            }
+                        }
+                        continue;
+                        continue;
+                    }
+                }
+
+                if (data.worlds.length === 0 && data.events.length === 0 && data.talents.length === 0) {
+                    alert('未能解析到有效数据，请检查配置表格式！');
+                    return;
+                }
+
+                if (confirm(`解析完成！\n世界: ${data.worlds.length}\n天赋: ${data.talents.length}\n事件: ${data.events.length}\n结局: ${(data.endings || []).length}\n\n是否导入？（将覆盖当前数据）`)) {
+                    this.data = data;
+                    this.render();
+                    alert('配置表导入成功！');
+                }
+            },
+
+            generateStandalone() {
+                // Check for unsaved ending rules
+                const hasUnsavedRules = Object.values(this.tempEndingRules || {}).some(r => r.right || r.endingId);
+                if (hasUnsavedRules) {
+                    if (!confirm('检测到您有未保存的结局触发规则（已填写但未点击添加按钮）。\n是否忽略这些规则并继续导出？')) {
+                        return;
+                    }
+                }
+
+                // Read index.html from same directory via fetch, fallback to embedded template
+                const config = JSON.stringify(this.data, null, 4);
+                const newConfig = `let GAME_DATA = ${config}; `;
+
+                // Try to fetch game.html from same directory
+                fetch('game.html')
+                    .then(r => { if (!r.ok) throw new Error('fetch failed'); return r.text(); })
+                    .then(html => {
+                        const regex = /let GAME_DATA = \{[\s\S]*?\};/;
+                        if (!regex.test(html)) {
+                            alert('未在 game.html 中找到 GAME_DATA，请确保文件正确。');
+                            return;
+                        }
+                        const result = html.replace(regex, newConfig);
+                        this._downloadHtml(result);
+                    })
+                    .catch(() => {
+                        // Fallback: ask user to upload
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = '.html';
+                        input.onchange = (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                                let html = ev.target.result;
+                                const regex = /let GAME_DATA = \{[\s\S]*?\};/;
+                                if (!regex.test(html)) {
+                                    alert('未在文件中找到 GAME_DATA。');
+                                    return;
+                                }
+                                const result = html.replace(regex, newConfig);
+                                this._downloadHtml(result);
+                            };
+                            reader.readAsText(file);
+                        };
+                        input.click();
+                    });
+            },
+
+            _downloadHtml(htmlContent) {
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'game.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            },
+
+            importFromFile() {
+                const fileInput = document.getElementById('import-file');
+                if (!fileInput.files.length) {
+                    alert('请先选择一个 JSON 文件。');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        this.data = JSON.parse(e.target.result);
+                        this.currentView = 'worlds';
+                        this.selectedId = null;
+                        this.render();
+                        alert('导入成功!');
+                    } catch (err) {
+                        alert('无效的 JSON 文件');
+                    }
+                };
+                reader.readAsText(fileInput.files[0]);
+            },
+
+            updateItem(key, val) {
+                let list = this.currentView === 'timeline' ? this.data.events : this.getList(this.currentView);
+                const item = list.find(x => x.id === this.selectedId);
+                if (item) {
+                    item[key] = val;
+                    this.render();
+                }
+            },
+
+            // Save data silently (no re-render) — used by oninput on text fields
+            updateItemSilent(key, val) {
+                let list = this.currentView === 'timeline' ? this.data.events : this.getList(this.currentView);
+                const item = list.find(x => x.id === this.selectedId);
+                if (item) {
+                    item[key] = val;
+                }
+            },
+
+            updateJSONItem(key, valStr) {
+                try {
+                    const val = JSON.parse(valStr);
+                    this.updateItem(key, val);
+                } catch (e) { }
+            },
+
+            getList(view) {
+                if (view === 'worlds') return this.data.worlds;
+                if (view === 'talents') return this.data.talents;
+                if (view === 'events') {
+                    // Optimized Event List: Sorted by World -> Age
+                    return this.data.events.sort((a, b) => {
+                        if (a.worldId !== b.worldId) return a.worldId.localeCompare(b.worldId);
+                        return a.minAge - b.minAge;
+                    });
+                }
+                if (view === 'endings') return this.data.endings;
+                return [];
+            },
+
+            copyToClipboard() {
+                const text = JSON.stringify(this.data, null, 2);
+                navigator.clipboard.writeText(text).then(() => alert('已复制!'));
+            },
+
+            importFromArea() {
+                try {
+                    this.data = JSON.parse(document.getElementById('io-area').value);
+                    this.currentView = 'worlds';
+                    this.selectedId = null;
+                    this.render();
+                    alert('导入成功!');
+                } catch (e) { alert('无效的 JSON'); }
+            },
+
+            // --- Visual Condition Editor ---
+            renderConditionEditor(container, item) {
+                // Convert old string condition to array format if needed
+                if (typeof item.condition === 'string' && item.condition.trim()) {
+                    // Try to parse old format like "根骨 > 5"
+                    const match = item.condition.match(/^(\S+)\s*(>=|<=|!=|>|<|=)\s*(\S+)$/);
+                    if (match) {
+                        item.conditions = [{ attr: match[1], op: match[2], val: parseFloat(match[3]) || 0 }];
+                    }
+                    delete item.condition;
+                } else if (typeof item.condition === 'string') {
+                    delete item.condition;
+                }
+
+                const conditions = item.conditions || [];
+                const worldId = item.worldId;
+                const world = this.data.worlds.find(w => w.id === worldId);
+
+                // Build attribute + talent lists
+                let attrOptions = [];
+                if (world) {
+                    attrOptions = (world.uniqueAttributes || []).map(a => ({ value: a, label: a }));
+                } else {
+                    attrOptions = [{ value: '请先选择世界', label: '请先选择世界' }];
+                }
+                const worldTalents = this.data.talents.filter(t => t.worldId === worldId || !worldId);
+                const talentIds = new Set(worldTalents.map(t => t.id));
+
+                const operators = ['>', '<', '=', '>=', '<=', '!='];
+
+                const section = document.createElement('div');
+                section.className = 'form-group';
+                let html = `<label>触发条件 (Conditions) — 全部满足时触发</label>
+                    <div style="background:#333; padding:8px; border:1px solid #555; border-radius:4px;">`;
+
+                conditions.forEach((cond, idx) => {
+                    const isTalent = talentIds.has(cond.attr) || cond.op === 'has';
+
+                    html += `
+                    <div class="flex-row" style="margin-bottom:5px; gap:5px;">
+                        <select style="flex:2;" onchange="app.updateCondition('${item.id}', ${idx}, 'attr', this.value)">
+                            <optgroup label="属性 (Attributes)">
+                                ${attrOptions.map(a => `<option value="${a.value}" ${a.value === cond.attr ? 'selected' : ''}>${a.label}</option>`).join('')}
+                            </optgroup>
+                            <optgroup label="天赋 (Talents) — 拥有即触发">
+                                ${worldTalents.map(t => `<option value="${t.id}" ${t.id === cond.attr ? 'selected' : ''}>${t.name}</option>`).join('')}
+                            </optgroup>
+                        </select>`;
+
+                    if (isTalent) {
+                        // Talent: no operator/value, just a badge
+                        html += `
+                        <span style="color:#4caf50; font-size:0.85em; white-space:nowrap; padding:4px 8px; background:#1b5e20; border-radius:3px;">✓ 拥有即触发</span>`;
+                    } else {
+                        // Attribute: operator + value
+                        html += `
+                        <select style="width:60px;" onchange="app.updateCondition('${item.id}', ${idx}, 'op', this.value)">
+                            ${operators.map(o => `<option value="${o}" ${o === cond.op ? 'selected' : ''}>${o}</option>`).join('')}
+                        </select>
+                        <input type="number" value="${cond.val || 0}" style="width:70px;"
+                            onchange="app.updateCondition('${item.id}', ${idx}, 'val', parseFloat(this.value))">`;
+                    }
+
+                    html += `
+                        <button class="btn btn-danger" style="padding:2px 6px;"
+                            onclick="app.removeCondition('${item.id}', ${idx})">×</button>
+                    </div>`;
+                });
+
+                html += `
+                    <button class="btn btn-success" style="width:100%; margin-top:5px; padding:4px;"
+                        onclick="app.addCondition('${item.id}')">+ 添加条件</button>
+                    </div>`;
+
+                section.innerHTML = html;
+                container.appendChild(section);
+            },
+
+            addCondition(itemId) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                if (this.currentView === 'timeline') list = this.data.events;
+                if (this.currentView === 'endings') list = this.data.endings;
+                const item = list.find(x => x.id === itemId);
+                if (!item) return;
+                if (!item.conditions) item.conditions = [];
+
+                // Default to first available attribute
+                const world = this.data.worlds.find(w => w.id === item.worldId);
+                let defaultAttr = '恶名';
+                if (world && world.uniqueAttributes.length > 0) {
+                    defaultAttr = world.uniqueAttributes[0];
+                }
+
+                item.conditions.push({ attr: defaultAttr, op: '>', val: 0 });
+                this.render();
+            },
+
+            removeCondition(itemId, idx) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                if (this.currentView === 'timeline') list = this.data.events;
+                if (this.currentView === 'endings') list = this.data.endings;
+                const item = list.find(x => x.id === itemId);
+                if (!item || !item.conditions) return;
+                item.conditions.splice(idx, 1);
+                if (item.conditions.length === 0) delete item.conditions;
+                this.render();
+            },
+
+            updateCondition(itemId, idx, field, value) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                if (this.currentView === 'timeline') list = this.data.events;
+                if (this.currentView === 'endings') list = this.data.endings;
+                const item = list.find(x => x.id === itemId);
+                if (!item || !item.conditions || !item.conditions[idx]) return;
+                item.conditions[idx][field] = value;
+
+                if (field === 'attr') {
+                    // Check if new value is a talent ID
+                    const worldId = item.worldId;
+                    const worldTalents = this.data.talents.filter(t => t.worldId === worldId || !worldId);
+                    const isTalent = worldTalents.some(t => t.id === value);
+
+                    if (isTalent) {
+                        item.conditions[idx].op = 'has';
+                        item.conditions[idx].val = '';
+                    } else if (item.conditions[idx].op === 'has') {
+                        item.conditions[idx].op = '>';
+                        item.conditions[idx].val = 0;
+                    }
+                    this.render();
+                }
+            },
+
+            // --- Visual Choice Editor & Methods ---
+            renderChoiceEditor(container, item) {
+                const choices = item.choices || [];
+                const worldId = item.worldId;
+                const world = this.data.worlds.find(w => w.id === worldId);
+
+                // Attributes for dropdown
+                let availableAttrs = [];
+                if (world) {
+                    availableAttrs = [...world.uniqueAttributes];
+                } else {
+                    availableAttrs = ['请先选择世界'];
+                }
+
+                let html = '<div style="background:#222; padding:10px; border-radius:4px; border:1px solid #444;">';
+
+                if (choices.length === 0) {
+                    html += '<div style="color:#666; font-size:0.9em; margin-bottom:5px;">无选项</div>';
+                }
+
+                choices.forEach((choice, idx) => {
+                    const eff = choice.effect || {};
+                    html += `
+                    <div style="border:1px solid #444; padding:5px; margin-bottom:5px; background:#2a2a2a;">
+                        <div class="flex-row" style="margin-bottom:5px;">
+                            <span style="font-weight:bold; color:#aaa;">#${idx + 1}</span>
+                            <input type="text" value="${choice.text || ''}" placeholder="选项描述" 
+                                style="flex:1;" 
+                                oninput="app.updateChoice('${item.id}', ${idx}, 'text', this.value)">
+                            <button class="btn btn-danger" style="padding:2px 6px;" 
+                                onclick="app.removeChoice('${item.id}', ${idx})">x</button>
+                        </div>
+                        <div class="flex-row" style="margin-bottom:5px;">
+                            <label style="width:60px; color:#888; font-size:0.8em;">后续事件:</label>
+                            <input type="text" value="${choice.nextEventId || ''}" placeholder="事件ID (可选)" 
+                                style="flex:1; font-family:monospace; font-size:0.9em;" 
+                                oninput="app.updateChoice('${item.id}', ${idx}, 'nextEventId', this.value)">
+                        </div>
+                        <!-- Choice Effect -->
+                        <div style="padding-left:20px; font-size:0.9em;">
+                            <div style="color:#888; margin-bottom:2px;">效果:</div>
+                            ${Object.entries(eff).map(([effKey, effVal]) => `
+                                <div class="flex-row" style="margin-bottom:2px;">
+                                    <span style="width:60px; color:#aaa;">${effKey}</span>
+                                    <input type="number" value="${effVal}" style="width:60px;"
+                                        onchange="app.updateChoiceEffect('${item.id}', ${idx}, '${effKey}', parseFloat(this.value))">
+                                    <button class="btn btn-danger" style="padding:0px 4px; font-size:0.8em;"
+                                        onclick="app.removeChoiceEffect('${item.id}', ${idx}, '${effKey}')">x</button>
+                                </div>
+                            `).join('')}
+                            <!-- Add Choice Effect -->
+                             <div class="flex-row" style="margin-top:5px;">
+                                <select id="new-ch-attr-${item.id}-${idx}" style="flex:1;">
+                                    ${availableAttrs.map(a => `<option value="${a}">${a}</option>`).join('')}
+                                </select>
+                                <input type="number" id="new-ch-val-${item.id}-${idx}" placeholder="0" style="width:50px;">
+                                <button class="btn btn-success" style="padding:2px 6px;"
+                                    onclick="app.addChoiceEffect('${item.id}', ${idx})">+</button>
+                            </div>
+                        </div>
+                    </div>
+            `;
+                });
+
+                html += `
+            <button class="btn btn-success" style="width:100%; margin-top:5px;"
+                onclick="app.addChoice('${item.id}')">+ 添加选项</button>
+            `;
+
+                html += '</div>';
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'form-group';
+                wrapper.innerHTML = `<label>选项 (Choices)</label>${html}`;
+                container.appendChild(wrapper);
+            },
+
+            // --- Choice Management Methods ---
+            addChoice(itemId) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                // Fallback for timeline view
+                if (this.currentView === 'timeline') list = this.data.events;
+
+                const item = list.find(x => x.id === itemId);
+                if (!item) return;
+                if (!item.choices) item.choices = [];
+                item.choices.push({ text: '新选项', effect: {} });
+                this.render();
+            },
+
+            removeChoice(itemId, idx) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                // Fallback
+                if (this.currentView === 'timeline') list = this.data.events;
+
+                const item = list.find(x => x.id === itemId);
+                if (!item || !item.choices) return;
+                item.choices.splice(idx, 1);
+                this.render();
+            },
+
+            updateChoice(itemId, idx, field, value) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                if (this.currentView === 'timeline') list = this.data.events;
+
+                const item = list.find(x => x.id === itemId);
+                if (!item || !item.choices || !item.choices[idx]) return;
+                item.choices[idx][field] = value;
+            },
+
+            addChoiceEffect(itemId, idx) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                if (this.currentView === 'timeline') list = this.data.events;
+
+                const item = list.find(x => x.id === itemId);
+                if (!item || !item.choices || !item.choices[idx]) return;
+
+                const attr = document.getElementById(`new- ch - attr - ${itemId} -${idx} `).value;
+                const val = parseFloat(document.getElementById(`new- ch - val - ${itemId} -${idx}`).value) || 0;
+
+                if (!item.choices[idx].effect) item.choices[idx].effect = {};
+                item.choices[idx].effect[attr] = val;
+                this.render();
+            },
+
+            removeChoiceEffect(itemId, idx, key) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                if (this.currentView === 'timeline') list = this.data.events;
+
+                const item = list.find(x => x.id === itemId);
+                if (!item || !item.choices || !item.choices[idx] || !item.choices[idx].effect) return;
+                delete item.choices[idx].effect[key];
+                this.render();
+            },
+
+            updateChoiceEffect(itemId, idx, key, val) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                if (this.currentView === 'timeline') list = this.data.events;
+
+                const item = list.find(x => x.id === itemId);
+                if (!item || !item.choices || !item.choices[idx] || !item.choices[idx].effect) return;
+                item.choices[idx].effect[key] = val;
+            }
+        };
+
+        app.init();
+    </script>
+</body>
+
+</html>

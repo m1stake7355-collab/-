@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>反派模拟器</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --text: #e0e0e0;
+            --accent: #bb86fc;
+            --secondary: #03dac6;
+            --panel: #1e1e1e;
+            --border: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #game-top {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+
+        #game-bottom {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, var(--bg) 30%);
+            padding: 20px;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            color: var(--accent);
+            text-align: center;
+            font-size: 2em;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 24px;
+            font-size: 0.9em;
+        }
+
+        h2 {
+            color: var(--accent);
+            margin-bottom: 16px;
+            font-size: 1.3em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        h3 {
+            color: var(--secondary);
+            margin: 12px 0 8px;
+            font-size: 1.1em;
+        }
+
+        /* --- Start Screen --- */
+        .start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            text-align: center;
+            padding-top: 15vh;
+        }
+
+        .start-screen h1 {
+            font-size: 3em;
+            margin-bottom: 8px;
+            text-shadow: 0 0 30px rgba(187, 134, 252, 0.3);
+        }
+
+        .start-screen .subtitle {
+            font-size: 1.1em;
+            margin-bottom: 16px;
+        }
+
+        .start-btn {
+            padding: 16px 48px;
+            font-size: 1.3em;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s;
+            letter-spacing: 2px;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(187, 134, 252, 0.5);
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: #000;
+        }
+
+        .btn-disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .btn-large {
+            padding: 14px 36px;
+            font-size: 1.1em;
+            border-radius: 8px;
+        }
+
+        /* --- World Cards --- */
+        .world-card {
+            background: #2a2a2a;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .world-card:hover {
+            border-color: var(--accent);
+            background: #333;
+        }
+
+        .world-card h3 {
+            margin: 0 0 6px;
+            color: var(--accent);
+        }
+
+        .world-card p {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .attr-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .attr-tag {
+            background: #444;
+            color: var(--secondary);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        /* --- Attribute Allocation --- */
+        .attr-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .attr-name {
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        .attr-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .attr-controls button {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border);
+            background: #333;
+            color: var(--text);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .attr-controls button:hover {
+            background: #555;
+        }
+
+        .attr-val {
+            font-size: 1.3em;
+            min-width: 36px;
+            text-align: center;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .points-left {
+            text-align: center;
+            font-size: 1.1em;
+            margin: 16px 0;
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        /* --- Talent Cards --- */
+        .talent-card {
+            background: #2a2a2a;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .talent-card:hover {
+            border-color: var(--accent);
+        }
+
+        .talent-card.selected {
+            border-color: var(--secondary);
+            background: #1b3a2a;
+        }
+
+        .talent-grade {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 0.75em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .grade-0 {
+            background: #555;
+            color: #e0e0e0;
+        }
+
+        .grade-1 {
+            background: #1565c0;
+            color: #90caf9;
+        }
+
+        .grade-2 {
+            background: #6a1b9a;
+            color: #ce93d8;
+        }
+
+        .grade-3 {
+            background: #e65100;
+            color: #ffcc80;
+        }
+
+        .grade-4 {
+            background: #b71c1c;
+            color: #ef9a9a;
+        }
+
+        .talent-name {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .talent-desc {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 6px;
+        }
+
+        .talent-effect {
+            color: var(--secondary);
+            font-size: 0.85em;
+        }
+
+        /* --- Life Simulation --- */
+        .life-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .age-display {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stats-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #2a2a2a;
+            border-radius: 6px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.9em;
+        }
+
+        .stat-label {
+            color: #aaa;
+        }
+
+        .stat-value {
+            color: var(--secondary);
+            font-weight: 700;
+        }
+
+        .event-log {
+            max-height: 450px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .event-entry {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--accent);
+            background: #2a2a2a;
+            border-radius: 0 6px 6px 0;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .event-age {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 0.85em;
+        }
+
+        .event-text {
+            margin: 4px 0;
+        }
+
+        .event-effects {
+            color: var(--secondary);
+            font-size: 0.85em;
+        }
+
+        /* --- Choices --- */
+        .choice-list {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .choice-btn {
+            padding: 10px 16px;
+            background: #333;
+            border: 1px solid var(--accent);
+            color: var(--text);
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 0.95em;
+            transition: all 0.2s;
+        }
+
+        .choice-btn:hover {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .choice-effect {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-top: 2px;
+        }
+
+        .choice-btn:hover .choice-effect {
+            color: #333;
+        }
+
+        /* --- Ending --- */
+        .ending-card {
+            text-align: center;
+            padding: 40px 24px;
+        }
+
+        .ending-card h1 {
+            font-size: 2.2em;
+            margin-bottom: 16px;
+        }
+
+        .ending-content {
+            font-size: 1.1em;
+            line-height: 1.8;
+            color: #ccc;
+            margin: 20px 0;
+        }
+
+        .final-stats {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .final-stat {
+            background: #2a2a2a;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .final-stat-val {
+            font-size: 1.6em;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .final-stat-name {
+            font-size: 0.85em;
+            color: #aaa;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-16 {
+            margin-top: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-top">
+        <div class="container" id="game"></div>
+    </div>
+    <div id="game-bottom">
+        <div class="container" id="action-bar"></div>
+    </div>
+
+    <script>
+        // ============================================================
+        // GAME_DATA placeholder — replaced by generateStandalone()
+        // ============================================================
+        let GAME_DATA = {};
+
+        // ============================================================
+        // Game Engine
+        // ============================================================
+        const Game = {
+            data: null,
+            state: null,
+
+            init() {
+                const debug = localStorage.getItem('VILLAIN_SIM_DEBUG');
+                if (debug) {
+                    try {
+                        this.data = JSON.parse(debug);
+                        localStorage.removeItem('VILLAIN_SIM_DEBUG');
+                    } catch (e) {
+                        this.data = GAME_DATA;
+                    }
+                } else {
+                    this.data = GAME_DATA;
+                }
+
+                if (!this.data || !this.data.worlds || this.data.worlds.length === 0) {
+                    this._setContent(`
+                        <div class="card text-center">
+                            <h1>⚠️</h1>
+                            <p>未找到游戏数据。请从编辑器启动测试，或使用包含数据的独立版本。</p>
+                        </div>`);
+                    this._setAction('');
+                    return;
+                }
+
+                this.applyTheme();
+                document.title = (this.data.theme && this.data.theme.title) || '反派模拟器';
+                this.showStartScreen();
+            },
+
+            _setContent(html) {
+                document.getElementById('game').innerHTML = html;
+            },
+
+            _setAction(html) {
+                const bar = document.getElementById('action-bar');
+                bar.innerHTML = html;
+                bar.parentElement.style.display = html ? '' : 'none';
+            },
+
+            applyTheme() {
+                const t = this.data.theme || {};
+                const r = document.documentElement.style;
+                if (t.bgColor) r.setProperty('--bg', t.bgColor);
+                if (t.textColor) r.setProperty('--text', t.textColor);
+                if (t.accentColor) r.setProperty('--accent', t.accentColor);
+                if (t.secondaryColor) r.setProperty('--secondary', t.secondaryColor);
+                if (t.panelBg) r.setProperty('--panel', t.panelBg);
+                if (t.borderColor) r.setProperty('--border', t.borderColor);
+            },
+
+            // ==========================================================
+            // Phase 0: Start Screen
+            // ==========================================================
+            showStartScreen() {
+                const t = this.data.theme || {};
+                this._setContent(`
+                    <div class="start-screen">
+                        <h1>${t.title || '反派模拟器'}</h1>
+                        <p class="subtitle">${t.subtitle || ''}</p>
+                        <button class="start-btn" onclick="Game.showWorldSelect()">开始游戏</button>
+                    </div>`);
+                this._setAction('');
+            },
+
+            // ==========================================================
+            // Phase 1: World Selection
+            // ==========================================================
+            showWorldSelect() {
+                try {
+                    console.log('Show World Select');
+                    if (!this.data.worlds) throw new Error('World data missing');
+
+                    let html = `<div class="card"><h2>选择你的世界</h2>`;
+                    this.data.worlds.forEach(w => {
+                        html += `
+                            <div class="world-card" onclick="Game.selectWorld('${w.id}')">
+                                <h3>${w.name}</h3>
+                                <p>${w.desc || ''}</p>
+                                <div class="attr-tags">
+                                    ${(w.uniqueAttributes || []).map(a => `<span class="attr-tag">${a}</span>`).join('')}
+                                </div>
+                            </div>`;
+                    });
+                    html += `</div>`;
+                    this._setContent(html);
+                    this._setAction('');
+                } catch (e) {
+                    alert('启动失败: ' + e.message);
+                    console.error(e);
+                }
+            },
+
+            selectWorld(worldId) {
+                const world = this.data.worlds.find(w => w.id === worldId);
+                if (!world) return;
+
+                this.state = {
+                    worldId,
+                    worldName: world.name,
+                    attrs: {},
+                    talents: [],
+                    age: 0,
+                    maxAge: 100,
+                    log: [],
+                    firedOnce: new Set()
+                };
+
+                world.uniqueAttributes.forEach(a => { this.state.attrs[a] = 0; });
+                this.showAttrAllocation();
+            },
+
+            // ==========================================================
+            // Phase 2: Attribute Allocation
+            // ==========================================================
+            showAttrAllocation() {
+                const world = this.data.worlds.find(w => w.id === this.state.worldId);
+                const totalPoints = this.data.initialPoints || 20;
+                const spent = Object.values(this.state.attrs).reduce((s, v) => s + v, 0);
+                const remaining = totalPoints - spent;
+
+                let html = `
+                    <div class="card">
+                        <h2>分配属性点</h2>
+                        <p class="subtitle" style="margin-bottom:8px;">世界: ${this.state.worldName}</p>
+                        <div class="points-left">剩余点数: <span id="pts-left">${remaining}</span> / ${totalPoints}</div>`;
+
+                world.uniqueAttributes.forEach(attr => {
+                    html += `
+                        <div class="attr-row">
+                            <span class="attr-name">${attr}</span>
+                            <div class="attr-controls">
+                                <button onclick="Game.adjustAttr('${attr}', -1)">−</button>
+                                <span class="attr-val" id="attr-${attr}">${this.state.attrs[attr]}</span>
+                                <button onclick="Game.adjustAttr('${attr}', 1)">+</button>
+                            </div>
+                        </div>`;
+                });
+
+                html += `</div>`;
+                this._setContent(html);
+                this._setAction(`<button class="btn btn-primary btn-large" onclick="Game.confirmAttrs()">确认属性 →</button>`);
+            },
+
+            adjustAttr(attr, delta) {
+                const totalPoints = this.data.initialPoints || 20;
+                let spent = Object.values(this.state.attrs).reduce((s, v) => s + v, 0);
+                const newVal = this.state.attrs[attr] + delta;
+                if (newVal < 0) return;
+                if (delta > 0 && spent >= totalPoints) return;
+                this.state.attrs[attr] = newVal;
+                document.getElementById(`attr-${attr}`).textContent = newVal;
+                spent = Object.values(this.state.attrs).reduce((s, v) => s + v, 0);
+                document.getElementById('pts-left').textContent = totalPoints - spent;
+            },
+
+            confirmAttrs() { this.showTalentDraw(); },
+
+            // ==========================================================
+            // Phase 3: Talent Draw
+            // ==========================================================
+            showTalentDraw() {
+                const worldTalents = (this.data.talents || []).filter(t => t.worldId === this.state.worldId);
+
+                if (worldTalents.length === 0) {
+                    this.startLife();
+                    return;
+                }
+
+                const pool = [...worldTalents];
+                const picks = [];
+                const count = Math.min(3, pool.length);
+                for (let i = 0; i < count; i++) {
+                    const idx = Math.floor(Math.random() * pool.length);
+                    picks.push(pool.splice(idx, 1)[0]);
+                }
+
+                const gradeNames = ['普通', '稀有', '精英', '传说', '神话'];
+                const gradeColors = ['grade-0', 'grade-1', 'grade-2', 'grade-3', 'grade-4'];
+
+                let html = `<div class="card">
+                    <h2>🎴 抽取天赋</h2>
+                    <p class="subtitle" style="margin-bottom:12px;">选择一个天赋开始你的人生</p>`;
+
+                picks.forEach((t, i) => {
+                    const grade = t.grade || 0;
+                    const effectStr = Object.entries(t.effect || {}).map(([k, v]) =>
+                        `${k}${v >= 0 ? '+' : ''}${v}`
+                    ).join('  ');
+
+                    html += `
+                        <div class="talent-card" id="talent-${i}" onclick="Game.selectTalent(${i})">
+                            <span class="talent-grade ${gradeColors[grade]}">${gradeNames[grade]}</span>
+                            <div class="talent-name">${t.name}</div>
+                            <div class="talent-desc">${t.desc || ''}</div>
+                            ${t.text ? `<div class="talent-desc" style="color:#ccc; margin-top:4px;">${t.text}</div>` : ''}
+                            <div class="talent-effect">${effectStr}</div>
+                        </div>`;
+                });
+
+                html += `</div>`;
+                this._setContent(html);
+                this._setAction(`<button class="btn btn-primary btn-large btn-disabled" id="btn-confirm-talent" onclick="Game.confirmTalent()">请选择天赋</button>`);
+                this._talentPicks = picks;
+                this._selectedTalentIdx = -1;
+            },
+
+            selectTalent(idx) {
+                this._selectedTalentIdx = idx;
+                document.querySelectorAll('.talent-card').forEach((el, i) => {
+                    el.classList.toggle('selected', i === idx);
+                });
+                const btn = document.getElementById('btn-confirm-talent');
+                btn.textContent = '确认天赋 →';
+                btn.classList.remove('btn-disabled');
+            },
+
+            confirmTalent() {
+                if (this._selectedTalentIdx < 0) return;
+                const talent = this._talentPicks[this._selectedTalentIdx];
+                this.state.talents.push(talent);
+                Object.entries(talent.effect || {}).forEach(([k, v]) => {
+                    if (this.state.attrs.hasOwnProperty(k)) {
+                        this.state.attrs[k] += v;
+                    }
+                });
+                this.startLife();
+            },
+
+            // ==========================================================
+            // Phase 4: Life Simulation
+            // ==========================================================
+            startLife() {
+                this.state.age = 0;
+                this.state.log = [];
+                this.state.firedOnce = new Set();
+                this._waitingForChoice = false;
+                this.renderLife();
+            },
+
+            renderLife() {
+                const s = this.state;
+                const talentNames = s.talents.map(t => t.name).join(', ') || '无';
+
+                let html = `
+                    <div class="card">
+                        <div class="life-header">
+                            <div>
+                                <span style="color:#888;">${s.worldName}</span>
+                                <span style="color:#666; margin-left:8px; font-size:0.85em;">天赋: ${talentNames}</span>
+                            </div>
+                            <div class="age-display">${s.age}岁</div>
+                        </div>
+                        <div class="stats-bar">${this._renderStats()}</div>
+                    </div>
+                    <div class="card">
+                        <div class="event-log" id="event-log">${this._renderLog()}</div>
+                        <div id="choice-area"></div>
+                    </div>`;
+
+                this._setContent(html);
+
+                // Bottom action bar
+                if (this._waitingForChoice) {
+                    this._setAction('');
+                } else if (s.age >= s.maxAge) {
+                    this._setAction(`<button class="btn btn-secondary btn-large" onclick="Game.showEnding()">查看结局 →</button>`);
+                } else {
+                    this._setAction(`<button class="btn btn-primary btn-large" onclick="Game.advanceAge()">下一年 →</button>`);
+                }
+
+                const logEl = document.getElementById('event-log');
+                if (logEl) logEl.scrollTop = logEl.scrollHeight;
+            },
+
+            _renderStats() {
+                return Object.entries(this.state.attrs).map(([k, v]) =>
+                    `<div class="stat-item"><span class="stat-label">${k}:</span><span class="stat-value">${v}</span></div>`
+                ).join('');
+            },
+
+            _renderLog() {
+                return this.state.log.map(entry => {
+                    let effectHtml = '';
+                    if (entry.effects && entry.effects.length > 0) {
+                        effectHtml = `<div class="event-effects">${entry.effects.join('  ')}</div>`;
+                    }
+                    let choiceHtml = '';
+                    if (entry.choiceText) {
+                        choiceHtml = `<div style="color:var(--accent); font-size:0.85em; margin-top:2px;">→ ${entry.choiceText}</div>`;
+                    }
+                    return `<div class="event-entry">
+                        <span class="event-age">${entry.age}岁</span>
+                        <div class="event-text">${entry.text}</div>
+                        ${choiceHtml}${effectHtml}
+                    </div>`;
+                }).join('');
+            },
+
+            advanceAge() {
+                if (this._waitingForChoice) return;
+                this.state.age++;
+
+                // Check for ending triggers immediately (Priority: Ending > Event)
+                this._checkEndingRules();
+                if (this.state.isEnded) return;
+
+                const events = this._getTriggeredEvents();
+                if (events.length === 0) {
+                    this.state.log.push({ age: this.state.age, text: '平静的一年。', effects: [] });
+                    if (!this.state.isEnded) this.renderLife();
+                    return;
+                }
+
+                this._pendingEvents = [...events];
+                this._processNextEvent();
+            },
+
+            _checkEndingRules() {
+                const world = (this.data.worlds || []).find(w => w.id === this.state.worldId);
+                console.log(`[EndingCheck] Age: ${this.state.age}, World: ${world ? world.id : 'None'}`);
+
+                if (!world || !world.endingRules) {
+                    console.log('[EndingCheck] No rules found.');
+                    return;
+                }
+
+                console.log(`[EndingCheck] Found ${world.endingRules.length} rules.`);
+                for (const rule of world.endingRules) {
+                    const result = this._evaluateRule(rule);
+                    console.log(`[EndingCheck] Rule: ${rule.left} ${rule.op} ${rule.right} -> Result: ${result}`);
+                    if (result) {
+                        console.log(`[EndingCheck] Triggering Ending: ${rule.endingId}`);
+                        this.showEnding(rule.endingId);
+                        this.state.isEnded = true; // Flag to stop rendering life
+                        return;
+                    }
+                }
+            },
+
+            _evaluateRule(rule) {
+                const getVal = (key) => {
+                    if (key === 'age') return this.state.age;
+                    const val = this.state.attrs[key];
+                    return val !== undefined ? val : parseFloat(key); // Fallback to float if key is number
+                };
+
+                const left = getVal(rule.left);
+
+                let rVal;
+                let rightKey = rule.right;
+                if (typeof rightKey === 'string') rightKey = rightKey.trim();
+
+                // Check if right side looks like a pure number first
+                if (/^-?\d+(\.\d+)?$/.test(rightKey)) {
+                    rVal = parseFloat(rightKey);
+                } else {
+                    // Try getting attribute value
+                    rVal = this.state.attrs[rightKey];
+                    // If not found, try flexible parsing (e.g. "30岁")
+                    if (rVal === undefined) rVal = parseFloat(rightKey);
+                }
+
+                if (isNaN(rVal)) rVal = 0;
+
+                console.log(`   [Eval] Left(${rule.left})=${left}, Right(${rule.right})=${rVal}, Op=${rule.op}`);
+
+                switch (rule.op) {
+                    case '>=': return left >= rVal;
+                    case '<=': return left <= rVal;
+                    case '==': return left == rVal;
+                    case '>': return left > rVal;
+                    case '<': return left < rVal;
+                    default: return false;
+                }
+            },
+
+            _getTriggeredEvents() {
+                const s = this.state;
+                const allEvents = (this.data.events || []).filter(e => e.worldId === s.worldId);
+                const triggered = [];
+
+                allEvents.forEach(ev => {
+                    if (s.age < (ev.minAge || 0) || s.age > (ev.maxAge || 999)) return;
+                    if (ev.once && s.firedOnce.has(ev.id)) return;
+                    if (ev.prob !== undefined && ev.prob < 100) {
+                        if (Math.random() * 100 > ev.prob) return;
+                    }
+                    if (ev.conditions && ev.conditions.length > 0) {
+                        const pass = ev.conditions.every(c => this._checkCondition(c));
+                        if (!pass) return;
+                    }
+                    triggered.push(ev);
+                });
+
+                return triggered;
+            },
+
+            _checkCondition(cond) {
+                if (cond.op === 'has') {
+                    return this.state.talents.some(t => t.id === cond.attr);
+                }
+                const val = this.state.attrs[cond.attr];
+                if (val === undefined) return false;
+                const target = parseFloat(cond.val) || 0;
+
+                switch (cond.op) {
+                    case '>': return val > target;
+                    case '<': return val < target;
+                    case '>=': return val >= target;
+                    case '<=': return val <= target;
+                    case '=': case '==': return val === target;
+                    case '!=': return val !== target;
+                    default: return false;
+                }
+            },
+
+            _processNextEvent() {
+                if (!this._pendingEvents || this._pendingEvents.length === 0) {
+                    this._checkEndingRules();
+                    if (!this.state.isEnded) this.renderLife();
+                    return;
+                }
+
+                const ev = this._pendingEvents.shift();
+                if (ev.once) this.state.firedOnce.add(ev.id);
+
+                if (ev.choices && ev.choices.length > 0) {
+                    const logEntry = { age: this.state.age, text: ev.text, effects: [], choiceText: null };
+                    this.state.log.push(logEntry);
+                    this._waitingForChoice = true;
+                    this._currentEvent = ev;
+                    this._currentLogEntry = logEntry;
+                    this.renderLife();
+                    this._showChoices(ev);
+                } else {
+                    const effects = this._applyEffects(ev.effect || {});
+                    this.state.log.push({ age: this.state.age, text: ev.text, effects });
+                    this._processNextEvent();
+                }
+            },
+
+            _showChoices(ev) {
+                const choiceArea = document.getElementById('choice-area');
+                if (!choiceArea) return;
+
+                let html = `<div class="choice-list">`;
+                ev.choices.forEach((ch, i) => {
+                    const effectStr = Object.entries(ch.effect || {}).map(([k, v]) =>
+                        `${k}${v >= 0 ? '+' : ''}${v}`
+                    ).join('  ');
+
+                    html += `
+                        <button class="choice-btn" onclick="Game.makeChoice(${i})">
+                            ${ch.text}
+                            ${effectStr ? `<div class="choice-effect">${effectStr}</div>` : ''}
+                        </button>`;
+                });
+                html += `</div>`;
+                choiceArea.innerHTML = html;
+            },
+
+            makeChoice(idx) {
+                const ev = this._currentEvent;
+                const ch = ev.choices[idx];
+                console.log('[Game] Player made choice:', idx, ch);
+
+                if (!ch) {
+                    console.error('[Game] Choice not found!');
+                    return;
+                }
+
+                const effects = this._applyEffects(ch.effect || {});
+                console.log('[Game] Applied effects:', effects);
+
+                this._currentLogEntry.choiceText = ch.text;
+                this._currentLogEntry.effects = effects;
+
+                this._waitingForChoice = false;
+                this._currentEvent = null;
+                this._currentLogEntry = null;
+
+                if (ch.nextEventId) {
+                    console.log('[Game] Chaining to next event:', ch.nextEventId);
+                    const nextEv = (this.data.events || []).find(e => e.id === ch.nextEventId);
+                    if (nextEv) {
+                        this._pendingEvents.unshift(nextEv);
+                    } else {
+                        console.warn('[Game] Next event not found:', ch.nextEventId);
+                    }
+                }
+
+                this._processNextEvent();
+            },
+
+            _applyEffects(effect) {
+                const changes = [];
+                console.log('[Game] processing effect:', effect);
+                Object.entries(effect).forEach(([k, v]) => {
+                    // Support Chinese colon just in case it slipped through parser
+                    const key = k.trim();
+                    if (this.state.attrs.hasOwnProperty(key)) {
+                        this.state.attrs[key] += v;
+                        changes.push(`${key}${v >= 0 ? '+' : ''}${v}`);
+                    } else {
+                        console.warn('[Game] Attribute not found:', key);
+                    }
+                });
+                return changes;
+            },
+
+            // ==========================================================
+            // Phase 5: Ending
+            // ==========================================================
+            // ==========================================================
+            // Phase 5: Ending
+            // ==========================================================
+            showEnding(specificEndingId = null) {
+                let matched = null;
+
+                if (specificEndingId) {
+                    matched = (this.data.endings || []).find(e => e.id === specificEndingId);
+                } else {
+                    const endings = (this.data.endings || []).filter(e => !e.worldId || e.worldId === this.state.worldId);
+                    endings.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+                    for (const ending of endings) {
+                        if (!ending.conditions || ending.conditions.length === 0) {
+                            matched = ending;
+                            break;
+                        }
+                        if (ending.conditions.every(c => this._checkCondition(c))) {
+                            matched = ending;
+                            break;
+                        }
+                    }
+                }
+
+                if (!matched) {
+                    matched = { name: '人生落幕', desc: '你的一生就这样结束了。', text: '<p>没有什么特别的故事可以讲述。</p>' };
+                }
+
+                this._setContent(`
+                    <div class="card ending-card">
+                        <h1>🏆 ${matched.name}</h1>
+                        <p class="subtitle">${matched.desc || ''}</p>
+                        <div class="ending-content">${matched.text || ''}</div>
+                        <div class="final-stats">
+                            ${Object.entries(this.state.attrs).map(([k, v]) => `
+                                <div class="final-stat">
+                                    <div class="final-stat-val">${v}</div>
+                                    <div class="final-stat-name">${k}</div>
+                                </div>`).join('')}
+                        </div>
+                        <p style="color:#888; margin: 16px 0;">终年 ${this.state.age} 岁 · ${this.state.worldName}</p>
+                    </div>`);
+
+                this._setAction(`<button class="btn btn-primary btn-large" onclick="Game.init()">🔄 重新开始</button>`);
+            }
+        };
+
+        Game.init();
+    </script>
+</body>
+
+</html>
