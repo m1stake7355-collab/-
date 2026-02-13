@@ -1021,6 +1021,10 @@
             <div class="form-group"><label>ID</label><input type="text" value="${item.id}" onchange="app.updateItem('id', this.value)"></div>
             <div class="form-group"><label>名称 (Name)</label><input type="text" value="${item.name}" oninput="app.updateItemSilent('name', this.value)"></div>
             <div class="form-group"><label>描述 (Desc)</label><textarea rows="3" oninput="app.updateItemSilent('desc', this.value)">${item.desc || ''}</textarea></div>
+            <div class="flex-row">
+                 <div class="form-group" style="flex:1;"><label>寿命 (Lifespan)</label><input type="number" value="${item.maxAge || 100}" onchange="app.updateItem('maxAge', parseInt(this.value))"></div>
+                 <div class="form-group" style="flex:1;"><label>年龄单位 (Age Unit)</label><input type="text" value="${item.ageLabel || '岁'}" placeholder="岁, 天, 关..." onchange="app.updateItem('ageLabel', this.value)"></div>
+            </div>
             
             <div class="form-group">
                 <label>世界专属属性 (Unique Attributes)</label>
