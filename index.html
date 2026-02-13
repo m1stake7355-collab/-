@@ -1828,15 +1828,24 @@
                 lines.push('# 二、世界列表 (Worlds)');
                 lines.push('# 每个世界定义一套独立的属性体系');
                 lines.push('# 格式: 世界ID | 世界名称 | 描述 | 属性1,属性2,属性3,...');
+                lines.push('# 可选字段 (写在世界行下方，缩进2空格):');
+                lines.push('#   寿命: 100           — 世界最大年龄');
+                lines.push('#   年龄单位: 岁        — 年龄的单位，如“岁”、“年”');
                 lines.push('# ----------------------------------------');
                 if (worlds.length > 0) {
                     worlds.forEach(w => {
                         lines.push(`世界: ${w.id} | ${w.name} | ${w.desc} | ${w.uniqueAttributes.join(',')}`);
+                        if (w.maxAge !== undefined) lines.push(`  寿命: ${w.maxAge}`);
+                        if (w.ageLabel) lines.push(`  年龄单位: ${w.ageLabel}`);
                     });
                 } else {
                     lines.push('# 示例:');
                     lines.push('世界: w_fantasy | 修仙世界 | 一个充满灵气的修仙大陆 | 修为,根骨,魔念,寿元');
+                    lines.push('  寿命: 1000');
+                    lines.push('  年龄单位: 岁');
                     lines.push('世界: w_city | 都市世界 | 现代都市生活 | 智商,体魄,金钱,人脉');
+                    lines.push('  寿命: 80');
+                    lines.push('  年龄单位: 年');
                 }
                 lines.push('');
 
@@ -2012,6 +2021,7 @@
                 let lastEvent = null;
                 let lastTalent = null;
                 let lastEnding = null;
+                let lastWorld = null; // Added for world sub-fields
 
                 for (let raw of lines) {
                     const line = raw.trim();
@@ -2032,10 +2042,14 @@
                     if (line.startsWith('世界:') || line.startsWith('世界：')) {
                         const parts = line.substring(3).replace(/｜/g, '|').split('|').map(s => s.trim());
                         if (parts.length >= 4) {
-                            data.worlds.push({
+                            lastWorld = {
                                 id: parts[0], name: parts[1], desc: parts[2],
                                 uniqueAttributes: parts[3].replace(/，/g, ',').split(',').map(s => s.trim()).filter(Boolean)
-                            });
+                            };
+                            data.worlds.push(lastWorld);
+                            lastTalent = null;
+                            lastEvent = null;
+                            lastEnding = null;
                         }
                         continue;
                     }
@@ -2055,6 +2069,8 @@
                             data.talents.push(newTalent);
                             lastTalent = newTalent;
                             lastEvent = null;
+                            lastEnding = null;
+                            lastWorld = null;
                         }
                         continue;
                     }
@@ -2076,6 +2092,9 @@
                                 text: parts[4], effect
                             };
                             data.events.push(lastEvent);
+                            lastTalent = null;
+                            lastEnding = null;
+                            lastWorld = null;
                         }
                         continue;
                     }
@@ -2099,6 +2118,7 @@
                             lastEnding = newEnding;
                             lastEvent = null;
                             lastTalent = null;
+                            lastWorld = null;
                         }
                         continue;
                     }
@@ -2130,6 +2150,41 @@
                             }
                         }
                         continue;
+                    }
+
+                    if (lastEvent) {
+                        // Check for choices even if not indented (common user error)
+                        // Also check indented ones (handled by the block below, but we can catch them here too for robustness)
+                        const isChoice = /^选项\d*[:：]/.test(line);
+
+                        // If it IS a choice line, parse it here and continue to avoid needing indentation
+                        if (isChoice) {
+                            console.log('[Parser] Found Choice line (loose):', line);
+                            // Robust parsing for "选项:", "选项1:", "选项：", etc.
+                            const match = line.match(/^选项\d*[:：]/);
+                            const prefixLen = match[0].length;
+                            const parts = line.substring(prefixLen).replace(/｜/g, '|').split('|').map(s => s.trim());
+
+                            console.log('[Parser] Split parts:', parts);
+                            if (parts.length >= 1) {
+                                const chEffect = {};
+                                if (parts[1]) {
+                                    parts[1].replace(/，/g, ',').split(',').forEach(pair => {
+                                        const pairParts = pair.replace(/[:：]/g, ':').split(':').map(s => s.trim());
+                                        if (pairParts.length >= 2) {
+                                            const k = pairParts[0];
+                                            const v = parseFloat(pairParts[1]);
+                                            if (k && !isNaN(v)) chEffect[k] = v;
+                                        }
+                                    });
+                                }
+                                console.log('[Parser] Choice Effect:', chEffect);
+                                const nextEventId = parts[2] ? parts[2].trim() : null;
+                                if (!lastEvent.choices) lastEvent.choices = [];
+                                lastEvent.choices.push({ text: parts[0], effect: chEffect, nextEventId });
+                            }
+                            continue; // Logic handled, skip next block
+                        }
                     }
 
                     if (lastEvent && raw.startsWith('  ')) {

@@ -643,7 +643,8 @@
                     attrs: {},
                     talents: [],
                     age: 0,
-                    maxAge: 100,
+                    maxAge: world.maxAge || 100,
+                    ageLabel: world.ageLabel || '岁',
                     log: [],
                     firedOnce: new Set()
                 };
@@ -791,7 +792,7 @@
                                 <span style="color:#888;">${s.worldName}</span>
                                 <span style="color:#666; margin-left:8px; font-size:0.85em;">天赋: ${talentNames}</span>
                             </div>
-                            <div class="age-display">${s.age}岁</div>
+                            <div class="age-display">${s.age}${s.ageLabel || '岁'}</div>
                         </div>
                         <div class="stats-bar">${this._renderStats()}</div>
                     </div>
