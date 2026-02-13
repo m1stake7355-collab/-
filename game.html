@@ -935,7 +935,13 @@
                     triggered.push(ev);
                 });
 
-                return triggered;
+                // Randomly select ONE event if multiple are triggered
+                if (triggered.length > 0) {
+                    const idx = Math.floor(Math.random() * triggered.length);
+                    return [triggered[idx]];
+                }
+
+                return [];
             },
 
             _checkCondition(cond) {
