@@ -1143,8 +1143,6 @@
                 </select>
             </div>
             <div class="flex-row">
-                <div class="form-group" style="flex:1;"><label>最小年龄 (Min Age)</label><input type="number" value="${item.minAge || 0}" onchange="app.updateItem('minAge', parseInt(this.value))"></div>
-                <div class="form-group" style="flex:1;"><label>最大年龄 (Max Age)</label><input type="number" value="${item.maxAge || 0}" onchange="app.updateItem('maxAge', parseInt(this.value))"></div>
                 <div class="form-group" style="width:100px;">
                     <label>品质 (Quality)</label>
                     <select onchange="app.updateItem('grade', parseInt(this.value))" style="color:${this.getQualityColor(item.grade)}; font-weight:bold;">
@@ -1833,8 +1831,6 @@
                 lines.push('# 可选字段 (写在天赋行下方，缩进2空格):');
                 lines.push('#   品质: 0-4           — 天赋品质 (0:白, 1:蓝, 2:紫, 3:橙, 4:红)');
                 lines.push('#   文本: xxx           — 天赋详细文本');
-                lines.push('#   年龄: min-max       — 天赋适用年龄范围');
-                lines.push('#   年龄: min-max       — 天赋适用年龄范围');
                 // lines.push('#   条件: 属性名 > 数值    — 触发条件 (支持 > < = >= <= != has)'); // Removed
                 // lines.push('#   选项: 选项文本 | 属性名:变化值,... | 后续事件ID    — 添加选择分支'); // Removed
                 lines.push('# ----------------------------------------');
@@ -1844,12 +1840,9 @@
                         lines.push(`天赋: ${t.id} | ${t.worldId} | ${t.name} | ${t.desc || ''} | ${eff}`);
                         if (t.grade > 0) lines.push(`  品质: ${t.grade}`);
                         if (t.text) lines.push(`  文本: ${t.text}`);
-                        if (t.minAge !== undefined || t.maxAge !== undefined) {
-                            lines.push(`  年龄: ${t.minAge || 0}-${t.maxAge || 0}`);
-                        }
-                        if (t.minAge !== undefined || t.maxAge !== undefined) {
-                            lines.push(`  年龄: ${t.minAge || 0}-${t.maxAge || 0}`);
-                        }
+                        if (t.grade > 0) lines.push(`  品质: ${t.grade}`);
+                        if (t.text) lines.push(`  文本: ${t.text}`);
+                        // Age removed for talents
                         // Conditions removed for talents
 
                         // Choices removed for talents
@@ -2098,15 +2091,9 @@
                         if (line.startsWith('品质:')) {
                             lastTalent.grade = parseInt(line.split(':')[1].replace(/：/g, ':')) || 0;
                         } else if (line.startsWith('文本:')) {
-                            lastTalent.text = line.split(':')[1].replace(/：/g, ':').trim(); // Handle potential double colon if user typed "文本：xxx"
-                            // Actually better: just take substring after first colon
+                            // Just take substring after first colon
                             const firstColon = line.indexOf(':') > -1 ? line.indexOf(':') : line.indexOf('：');
                             if (firstColon > -1) lastTalent.text = line.substring(firstColon + 1).trim();
-                        } else if (line.startsWith('年龄:')) {
-                            const ageVal = line.split(':')[1].replace(/：/g, ':').trim();
-                            const ageParts = ageVal.split('-');
-                            lastTalent.minAge = parseInt(ageParts[0]) || 0;
-                            lastTalent.maxAge = parseInt(ageParts[1]) || 0;
                         }
                     }
 
