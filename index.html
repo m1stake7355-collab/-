@@ -1662,8 +1662,78 @@
                         return;
                     }
                 }
-                localStorage.setItem('VILLAIN_SIM_DEBUG', JSON.stringify(this.data));
-                window.open('game.html', '_blank');
+
+                // Check if game.html exists before opening
+                fetch('game.html', { method: 'HEAD' })
+                    .then(r => {
+                        if (r.ok) {
+                            localStorage.setItem('VILLAIN_SIM_DEBUG', JSON.stringify(this.data));
+                            window.open('game.html', '_blank');
+                        } else {
+                            alert('❌ 无法找到 game.html 文件！\n\n请检查：\n1. 是否已将 game.html 上传到 GitHub 仓库？\n2. 仓库根目录下是否有 game.html？\n3. 如果是刚上传，请等待 1-2 分钟让 GitHub Pages 更新。');
+                        }
+                    })
+                    .catch(() => {
+                        // Network error or other issue, try opening anyway as fallback
+                        localStorage.setItem('VILLAIN_SIM_DEBUG', JSON.stringify(this.data));
+                        window.open('game.html', '_blank');
+                    });
+            },
+
+            generateStandalone() {
+                // Check for unsaved ending rules
+                const hasUnsavedRules = Object.values(this.tempEndingRules || {}).some(r => r.right || r.endingId);
+                if (hasUnsavedRules) {
+                    if (!confirm('检测到您有未保存的结局触发规则（已填写但未点击添加按钮）。\n是否忽略这些规则并继续导出？')) {
+                        return;
+                    }
+                }
+
+                // Read index.html from same directory via fetch, fallback to embedded template
+                const config = JSON.stringify(this.data, null, 4);
+                const newConfig = `let GAME_DATA = ${config}; `;
+
+                // Try to fetch game.html from same directory
+                fetch('game.html')
+                    .then(r => {
+                        if (!r.ok) throw new Error('game.html not found');
+                        return r.text();
+                    })
+                    .then(html => {
+                        const regex = /let GAME_DATA = \{[\s\S]*?\};/;
+                        if (!regex.test(html)) {
+                            alert('未在 game.html 中找到 GAME_DATA，请确保文件正确。');
+                            return;
+                        }
+                        const result = html.replace(regex, newConfig);
+                        this._downloadHtml(result);
+                    })
+                    .catch((err) => {
+                        console.error(err);
+                        // Fallback: ask user to upload
+                        if (confirm('❌ 无法读取 game.html 模板！(可能未上传或网络问题)\n\n是否手动选择本地的 game.html 文件进行生成？')) {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = '.html';
+                            input.onchange = (e) => {
+                                const file = e.target.files[0];
+                                if (!file) return;
+                                const reader = new FileReader();
+                                reader.onload = (ev) => {
+                                    let html = ev.target.result;
+                                    const regex = /let GAME_DATA = \{[\s\S]*?\};/;
+                                    if (!regex.test(html)) {
+                                        alert('未在文件中找到 GAME_DATA。');
+                                        return;
+                                    }
+                                    const result = html.replace(regex, newConfig);
+                                    this._downloadHtml(result);
+                                };
+                                reader.readAsText(file);
+                            };
+                            input.click();
+                        }
+                    });
             },
 
             downloadJSON() {
