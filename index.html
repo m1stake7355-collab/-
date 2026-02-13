@@ -2147,16 +2147,24 @@
                                 if (cond.op !== 'has') cond.val = parseFloat(cond.val) || 0;
                                 lastEvent.conditions.push(cond);
                             }
-                        } else if (line.startsWith('选项:') || line.startsWith('选项：')) {
+                        } else if (/^选项\d*[:：]/.test(line)) {
                             console.log('[Parser] Found Choice line:', line);
-                            const parts = line.substring(3).replace(/｜/g, '|').split('|').map(s => s.trim());
+                            // Robust parsing for "选项:", "选项1:", "选项：", etc.
+                            const match = line.match(/^选项\d*[:：]/);
+                            const prefixLen = match[0].length;
+                            const parts = line.substring(prefixLen).replace(/｜/g, '|').split('|').map(s => s.trim());
+
                             console.log('[Parser] Split parts:', parts);
                             if (parts.length >= 1) {
                                 const chEffect = {};
                                 if (parts[1]) {
                                     parts[1].replace(/，/g, ',').split(',').forEach(pair => {
-                                        const [k, v] = pair.replace(/：/g, ':').split(':').map(s => s.trim());
-                                        if (k && v !== undefined) chEffect[k] = parseFloat(v) || 0;
+                                        const pairParts = pair.replace(/[:：]/g, ':').split(':').map(s => s.trim());
+                                        if (pairParts.length >= 2) {
+                                            const k = pairParts[0];
+                                            const v = parseFloat(pairParts[1]);
+                                            if (k && !isNaN(v)) chEffect[k] = v;
+                                        }
                                     });
                                 }
                                 console.log('[Parser] Choice Effect:', chEffect);
