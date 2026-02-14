@@ -878,10 +878,10 @@
                         div.style.fontSize = '0.9em';
                         div.style.marginBottom = '2px';
 
-                        let title = item.text ? item.text.substring(0, 20) + '...' : 'Untitled';
+                        const title = item.text || 'Untitled';
                         const ageStr = (item.minAge === item.maxAge) ? `[${item.minAge}]` : `[${item.minAge}-${item.maxAge}]`;
 
-                        div.innerHTML = `<span style="color:#aaa; margin-right:5px;">${ageStr}</span>${title}`;
+                        div.innerHTML = `<span style="color:#aaa; margin-right:5px; white-space:nowrap;">${ageStr}</span><span style="white-space: pre-wrap; word-wrap: break-word;">${title}</span>`;
                         div.onclick = (e) => {
                             e.stopPropagation(); // prevent closing details
                             this.selectedId = item.id;
@@ -969,7 +969,7 @@
                         const ageStr = (item.minAge === item.maxAge) ? `[Age ${item.minAge}]` : `[Age ${item.minAge}-${item.maxAge}]`;
                         // Also show World ID briefly if needed, but sorting handles grouping. 
                         // Let's just prepend Age.
-                        title = `<span style="color:#aaa; font-size:0.8em; margin-right:5px;">${ageStr}</span> ${title}`;
+                        title = `<span style="color:#aaa; font-size:0.8em; margin-right:5px; white-space:nowrap;">${ageStr}</span> <span style="white-space: pre-wrap; word-wrap: break-word;">${title}</span>`;
                     }
 
                     div.innerHTML = `<span>${title}</span>`;
