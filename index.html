@@ -376,21 +376,37 @@
             render() {
                 // 1. Save Scroll Positions
                 const scrollMap = {};
-                ['editor-list-col', 'editor-form-col', 'timeline-nodes-list', 'timeline-events-list', 'timeline-editor-body'].forEach(id => {
+                ['main', 'editor-list-col', 'editor-form-col', 'timeline-nodes-list', 'timeline-events-list', 'timeline-editor-body'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) scrollMap[id] = el.scrollTop;
                 });
+
+                // Also save window scroll just in case
+                scrollMap['window'] = window.scrollY;
 
                 const main = document.getElementById('main');
                 main.innerHTML = '';
 
                 // Restore Scroll Positions after render
-                setTimeout(() => {
+                const restoreScroll = () => {
                     Object.entries(scrollMap).forEach(([id, top]) => {
-                        const el = document.getElementById(id);
-                        if (el) el.scrollTop = top;
+                        if (id === 'window') {
+                            window.scrollTo(0, top);
+                        } else {
+                            const el = document.getElementById(id);
+                            if (el) el.scrollTop = top;
+                        }
                     });
-                }, 0);
+                };
+
+                // 1. Immediate restore (in case layout is fast)
+                restoreScroll();
+
+                // 2. Next Frame (standard)
+                requestAnimationFrame(restoreScroll);
+
+                // 3. Backup timeout (for heavy reflows)
+                setTimeout(restoreScroll, 20);
 
                 // Update JSON View
                 document.getElementById('json-area').innerText = JSON.stringify(this.data, null, 2);
@@ -952,6 +968,7 @@
                 const listCol = document.createElement('div');
                 listCol.style.width = '300px';
                 listCol.style.overflowY = 'auto';
+                listCol.id = 'editor-list-col'; // Scroll tracking
 
                 const addBtn = document.createElement('button');
                 addBtn.className = 'btn btn-success';
@@ -1009,6 +1026,7 @@
                 const formCol = document.createElement('div');
                 formCol.style.flexGrow = 1;
                 formCol.style.overflowY = 'auto';
+                formCol.id = 'editor-form-col'; // Scroll tracking
 
                 if (this.selectedId) {
                     const item = list.find(x => x.id === this.selectedId);
