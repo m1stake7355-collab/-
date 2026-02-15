@@ -2585,6 +2585,10 @@
                                     onclick="app.addChoiceEffect('${item.id}', ${idx})">+</button>
                             </div>
                         </div>
+
+                        <!-- Choice Conditions -->
+                        ${this._getChoiceConditionHTML(item.id, idx)}
+
                     </div>
             `;
                 });
@@ -2672,6 +2676,127 @@
                 const item = list.find(x => x.id === itemId);
                 if (!item || !item.choices || !item.choices[idx] || !item.choices[idx].effect) return;
                 item.choices[idx].effect[key] = val;
+            },
+
+            // --- Choice Condition Methods ---
+            _getChoiceConditionHTML(itemId, choiceIdx) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                const item = list.find(x => x.id === itemId);
+                if (!item || !item.choices || !item.choices[choiceIdx]) return '';
+
+                const choice = item.choices[choiceIdx];
+                const conditions = choice.conditions || [];
+                const worldId = item.worldId;
+                const world = this.data.worlds.find(w => w.id === worldId);
+
+                let attrOptions = [];
+                if (world) {
+                    attrOptions = (world.uniqueAttributes || []).map(a => ({ value: a, label: a }));
+                } else {
+                    attrOptions = [{ value: '请先选择世界', label: '请先选择世界' }];
+                }
+                const worldTalents = this.data.talents.filter(t => t.worldId === worldId || !worldId);
+                const talentIds = new Set(worldTalents.map(t => t.id));
+
+                const operators = ['>', '<', '=', '>=', '<=', '!='];
+
+                let html = `<div style="padding-left:20px; font-size:0.9em; margin-bottom:5px; border-top:1px dashed #444; padding-top:5px; margin-top:5px;">
+                    <div style="color:#aaa; margin-bottom:4px; font-weight:bold;">🔎 触发条件 (Conditions):</div>`;
+
+                if (conditions.length === 0) {
+                    html += `<div style="color:#666; font-style:italic; margin-bottom:5px;">无条件 (Always visible)</div>`;
+                }
+
+                conditions.forEach((cond, cIdx) => {
+                    const isTalent = talentIds.has(cond.attr) || cond.op === 'has';
+                    const isEvent = cond.op === 'triggered';
+
+                    html += `<div class="flex-row" style="margin-bottom:4px; gap:5px;">
+                        <span style="color:#666; font-size:0.8em; align-self:center;">${cIdx + 1}.</span>
+                        <select style="flex:2; font-size:0.9em;" onchange="app.updateChoiceCondition('${itemId}', ${choiceIdx}, ${cIdx}, 'attr', this.value)">
+                            <optgroup label="特殊 (Special)">
+                                <option value="evt_triggered" ${cond.op === 'triggered' ? 'selected' : ''}>已触发事件ID</option>
+                            </optgroup>
+                            <optgroup label="属性 (Attributes)">
+                                ${attrOptions.map(a => `<option value="${a.value}" ${a.value === cond.attr && cond.op !== 'triggered' ? 'selected' : ''}>${a.label}</option>`).join('')}
+                            </optgroup>
+                            <optgroup label="天赋 (Talents)">
+                                ${worldTalents.map(t => `<option value="${t.id}" ${t.id === cond.attr ? 'selected' : ''}>${t.name}</option>`).join('')}
+                            </optgroup>
+                        </select>`;
+
+                    if (isEvent) {
+                        html += `<input type="text" value="${cond.val || ''}" placeholder="Event ID" style="width:80px; font-size:0.9em;" 
+                            onchange="app.updateChoiceCondition('${itemId}', ${choiceIdx}, ${cIdx}, 'val', this.value)">`;
+                    } else if (isTalent) {
+                        html += `<span style="color:#4caf50; padding:2px 4px; background:#1b5e20; border-radius:3px; font-size:0.8em; flex:1;">✓ 拥有即触发</span>`;
+                    } else {
+                        html += `<select style="width:45px; font-size:0.9em;" onchange="app.updateChoiceCondition('${itemId}', ${choiceIdx}, ${cIdx}, 'op', this.value)">
+                            ${operators.map(o => `<option value="${o}" ${o === cond.op ? 'selected' : ''}>${o}</option>`).join('')}
+                        </select>
+                        <input type="number" value="${cond.val || 0}" style="width:50px; font-size:0.9em;" 
+                            onchange="app.updateChoiceCondition('${itemId}', ${choiceIdx}, ${cIdx}, 'val', parseFloat(this.value))">`;
+                    }
+
+                    html += `<button class="btn btn-danger" style="padding:0px 6px; line-height:20px;" onclick="app.removeChoiceCondition('${itemId}', ${choiceIdx}, ${cIdx})">×</button>
+                    </div>`;
+                });
+
+                html += `<button class="btn btn-success" style="padding:2px 8px; font-size:0.8em; margin-top:2px;" onclick="app.addChoiceCondition('${itemId}', ${choiceIdx})">+ 添加条件</button>
+                </div>`;
+
+                return html;
+            },
+
+            addChoiceCondition(itemId, choiceIdx) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                const item = list.find(x => x.id === itemId);
+                if (!item || !item.choices || !item.choices[choiceIdx]) return;
+
+                if (!item.choices[choiceIdx].conditions) item.choices[choiceIdx].conditions = [];
+                // Default to first attribute or generic
+                const world = this.data.worlds.find(w => w.id === item.worldId);
+                let defaultAttr = (world && world.uniqueAttributes.length > 0) ? world.uniqueAttributes[0] : '恶名';
+
+                item.choices[choiceIdx].conditions.push({ attr: defaultAttr, op: '>', val: 0 });
+                this.render();
+            },
+
+            removeChoiceCondition(itemId, choiceIdx, condIdx) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                const item = list.find(x => x.id === itemId);
+                if (!item || !item.choices || !item.choices[choiceIdx] || !item.choices[choiceIdx].conditions) return;
+                item.choices[choiceIdx].conditions.splice(condIdx, 1);
+                this.render();
+            },
+
+            updateChoiceCondition(itemId, choiceIdx, condIdx, field, value) {
+                let list = this.currentView === 'events' ? this.data.events : this.getList(this.currentView);
+                const item = list.find(x => x.id === itemId);
+                if (!item || !item.choices || !item.choices[choiceIdx] || !item.choices[choiceIdx].conditions) return;
+
+                const cond = item.choices[choiceIdx].conditions[condIdx];
+                cond[field] = value;
+
+                if (field === 'attr') {
+                    if (value === 'evt_triggered') {
+                        cond.op = 'triggered';
+                        cond.val = '';
+                    } else {
+                        // Check if talent
+                        const worldId = item.worldId;
+                        const worldTalents = this.data.talents.filter(t => t.worldId === worldId || !worldId);
+                        const isTalent = worldTalents.some(t => t.id === value);
+                        if (isTalent) {
+                            cond.op = 'has';
+                            cond.val = '';
+                        } else {
+                            cond.op = '>';
+                            cond.val = 0;
+                        }
+                    }
+                    this.render();
+                }
             }
         };
 

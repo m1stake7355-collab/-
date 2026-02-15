@@ -647,15 +647,17 @@
                 this.state = {
                     worldId,
                     worldName: world.name,
-                    attrs: {},
-                    talents: [],
                     age: 0,
                     maxAge: world.maxAge || 100,
                     ageLabel: world.ageLabel || '岁',
+                    attrs: { ...this.data.initialAttrs },
+                    talents: [...this.data.initialTalents],
                     log: [],
-                    firedOnce: new Set()
+                    isEnded: false,
+                    firedOnce: new Set(),
+                    executedEvents: new Set(), // Track all executed events
+                    lastEvent: null
                 };
-
                 world.uniqueAttributes.forEach(a => { this.state.attrs[a] = 0; });
                 this.showAttrAllocation();
             },
@@ -974,6 +976,9 @@
                 if (cond.op === 'has') {
                     return this.state.talents.some(t => t.id === cond.attr);
                 }
+                if (cond.op === 'triggered') {
+                    return this.state.executedEvents.has(cond.val);
+                }
                 const val = this.state.attrs[cond.attr];
                 if (val === undefined) return false;
                 const target = parseFloat(cond.val) || 0;
@@ -998,6 +1003,7 @@
 
                 const ev = this._pendingEvents.shift();
                 if (ev.once) this.state.firedOnce.add(ev.id);
+                this.state.executedEvents.add(ev.id); // Track ALL executed events
 
                 if (ev.choices && ev.choices.length > 0) {
                     const logEntry = { age: this.state.age, text: ev.text, effects: [], choiceText: null };
@@ -1010,9 +1016,8 @@
                     this._showChoices(ev);
                 } else {
                     this.state.lastEvent = ev; // Store for chain triggering
-                    if (ev.once) this.state.firedOnce.add(ev.id); // Re-apply once check just in case (though done above)
-                    // Actually 'once' is done above at shift().
-                    
+                    if (ev.once) this.state.firedOnce.add(ev.id);
+
                     const effects = this._applyEffects(ev.effect || {});
                     this.state.log.push({ age: this.state.age, text: ev.text, effects });
                     this._processNextEvent();
@@ -1022,32 +1027,25 @@
             _showChoices(ev) {
                 const choiceArea = document.getElementById('choice-area');
                 if (!choiceArea) return;
+                choiceArea.innerHTML = '';
 
-                let html = `<div class="choice-list">`;
-                ev.choices.forEach((ch, i) => {
-                    const effectStr = Object.entries(ch.effect || {}).map(([k, v]) =>
-                        `${k}${v >= 0 ? '+' : ''}${v}`
-                    ).join('  ');
+                ev.choices.forEach((choice, idx) => {
+                    // Check conditions for choice visibility
+                    if (choice.conditions && choice.conditions.length > 0) {
+                        const pass = choice.conditions.every(c => this._checkCondition(c));
+                        if (!pass) return; // Skip this choice if conditions not met
+                    }
 
-                    html += `
-                        <button class="choice-btn" onclick="Game.makeChoice(${i})">
-                            ${ch.text}
-                            ${effectStr ? `<div class="choice-effect">${effectStr}</div>` : ''}
-                        </button>`;
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-choice';
+                    btn.innerText = choice.text;
+                    btn.onclick = () => this._handleChoice(choice);
+                    choiceArea.appendChild(btn);
                 });
-                html += `</div>`;
-                choiceArea.innerHTML = html;
             },
 
-            makeChoice(idx) {
-                const ev = this._currentEvent;
-                const ch = ev.choices[idx];
-                console.log('[Game] Player made choice:', idx, ch);
-
-                if (!ch) {
-                    console.error('[Game] Choice not found!');
-                    return;
-                }
+            _handleChoice(ch) {
+                console.log('[Game] Player made choice:', ch);
 
                 const effects = this._applyEffects(ch.effect || {});
                 console.log('[Game] Applied effects:', effects);
