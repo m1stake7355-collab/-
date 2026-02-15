@@ -849,6 +849,22 @@
 
             advanceAge() {
                 if (this._waitingForChoice) return;
+
+                // Check if current event has a forced next event
+                const lastEvent = this.state.lastEvent;
+                if (lastEvent && lastEvent.triggerEventId) {
+                    const nextEventId = lastEvent.triggerEventId;
+                    const nextEvent = (this.data.events || []).find(e => e.id === nextEventId);
+                    if (nextEvent) {
+                        console.log(`[ChainEvent] Triggering ${nextEventId}`);
+                        this._pendingEvents = [nextEvent];
+                        this._processNextEvent();
+                        return; // Skip age increment
+                    } else {
+                        console.warn(`[ChainEvent] Target event ${nextEventId} not found.`);
+                    }
+                }
+
                 this.state.age++;
 
                 // Check for ending triggers immediately (Priority: Ending > Event)
@@ -986,12 +1002,17 @@
                 if (ev.choices && ev.choices.length > 0) {
                     const logEntry = { age: this.state.age, text: ev.text, effects: [], choiceText: null };
                     this.state.log.push(logEntry);
+                    this.state.lastEvent = ev; // Store for chain triggering
                     this._waitingForChoice = true;
                     this._currentEvent = ev;
                     this._currentLogEntry = logEntry;
                     this.renderLife();
                     this._showChoices(ev);
                 } else {
+                    this.state.lastEvent = ev; // Store for chain triggering
+                    if (ev.once) this.state.firedOnce.add(ev.id); // Re-apply once check just in case (though done above)
+                    // Actually 'once' is done above at shift().
+                    
                     const effects = this._applyEffects(ev.effect || {});
                     this.state.log.push({ age: this.state.age, text: ev.text, effects });
                     this._processNextEvent();

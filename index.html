@@ -1216,6 +1216,12 @@
                 </label>
             </div>
             <div class="form-group"><label>事件内容 (Text)</label><textarea rows="3" oninput="app.updateItemSilent('text', this.value)">${item.text || ''}</textarea></div>
+            <div class="form-group"><label>触发指定事件ID (Next Event ID)</label>
+                <div class="flex-row">
+                    <input type="text" value="${item.triggerEventId || ''}" placeholder="输入事件ID (可选)" onchange="app.updateItem('triggerEventId', this.value)" style="flex:1;">
+                    <small style="color:#aaa;">*填入ID后，点击“下一年”将直接触发该事件，不增加年龄。</small>
+                </div>
+            </div>
                 `;
                 // Visual Condition Editor
                 this.renderConditionEditor(container, item);
