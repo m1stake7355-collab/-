@@ -2642,8 +2642,13 @@
                 const item = list.find(x => x.id === itemId);
                 if (!item || !item.choices || !item.choices[idx]) return;
 
-                const attr = document.getElementById(`new- ch - attr - ${itemId} -${idx} `).value;
-                const val = parseFloat(document.getElementById(`new- ch - val - ${itemId} -${idx}`).value) || 0;
+                const attrInput = document.getElementById(`new-ch-attr-${itemId}-${idx}`);
+                const valInput = document.getElementById(`new-ch-val-${itemId}-${idx}`);
+
+                if (!attrInput || !valInput) return;
+
+                const attr = attrInput.value;
+                const val = parseFloat(valInput.value) || 0;
 
                 if (!item.choices[idx].effect) item.choices[idx].effect = {};
                 item.choices[idx].effect[attr] = val;
