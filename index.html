@@ -374,8 +374,23 @@
             },
 
             render() {
+                // 1. Save Scroll Positions
+                const scrollMap = {};
+                ['editor-list-col', 'editor-form-col', 'timeline-nodes-list', 'timeline-events-list', 'timeline-editor-body'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) scrollMap[id] = el.scrollTop;
+                });
+
                 const main = document.getElementById('main');
                 main.innerHTML = '';
+
+                // Restore Scroll Positions after render
+                setTimeout(() => {
+                    Object.entries(scrollMap).forEach(([id, top]) => {
+                        const el = document.getElementById(id);
+                        if (el) el.scrollTop = top;
+                    });
+                }, 0);
 
                 // Update JSON View
                 document.getElementById('json-area').innerText = JSON.stringify(this.data, null, 2);
@@ -470,8 +485,7 @@
                 `;
                 colNodes.appendChild(controlPanel);
 
-                const nodeList = document.createElement('div');
-                nodeList.className = 'timeline-list';
+
                 // ... (Node list rendering logic) ...
 
 
@@ -1402,6 +1416,7 @@
                 const formCol = document.createElement('div');
                 formCol.style.flexGrow = 1;
                 formCol.style.overflowY = 'auto';
+                formCol.id = 'editor-form-col'; // Scroll tracking
                 formCol.style.paddingLeft = '10px';
 
                 if (this.selectedId) {
